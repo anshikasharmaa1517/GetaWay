@@ -26,7 +26,7 @@ export default function LoginPage() {
       options: {
         emailRedirectTo:
           typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback`
+            ? `${window.location.origin}/auth/callback?next=%2Freviewers`
             : undefined,
       },
     });
@@ -49,7 +49,9 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Freviewers`,
+        },
       });
       if (error) setError(error.message);
       else setSent(true);
@@ -59,7 +61,7 @@ export default function LoginPage() {
         password,
       });
       if (error) setError(error.message);
-      else router.replace("/reviewer");
+      else router.replace("/reviewers");
     }
     setLoading(false);
   }
@@ -69,7 +71,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 relative">
+      {/* Top bar */}
+      <div className="absolute inset-x-0 top-0 flex items-center justify-end p-4 md:p-6">
+        <a
+          href="/become-reviewer"
+          className="rounded-full bg-black text-white px-5 md:px-6 py-2 md:py-2.5 text-xs md:text-sm font-medium shadow-sm hover:bg-zinc-900 active:bg-zinc-800 cursor-pointer"
+        >
+          Become reviewer
+        </a>
+      </div>
       <div className="hidden md:block relative bg-[#FAD7A1]">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-80 h-80 rounded-full bg-white/40" />

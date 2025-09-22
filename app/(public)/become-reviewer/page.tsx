@@ -1,0 +1,203 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
+const COUNTRIES = [
+  "India",
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Germany",
+  "Australia",
+  "Singapore",
+];
+
+const EXPERTISE = [
+  "Cybersecurity",
+  "Law",
+  "Content & Branding",
+  "Others",
+  "HR",
+  "Software",
+  "Product",
+  "Study Abroad",
+  "Finance",
+  "Design",
+  "Data",
+  "Mental Health & Wellbeing",
+  "Marketing",
+];
+
+export default function BecomeReviewerPage() {
+  const [social, setSocial] = useState("");
+  const [slug, setSlug] = useState("");
+  const [country, setCountry] = useState("India");
+  const [expertise, setExpertise] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const canNext = useMemo(
+    () =>
+      social.trim().length > 0 &&
+      slug.trim().length >= 3 &&
+      expertise.length > 0,
+    [social, slug, expertise]
+  );
+
+  function toggle(tag: string) {
+    setExpertise((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }
+
+  async function handleNext(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canNext) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/reviewers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          display_name: slug,
+          country,
+          expertise,
+          slug,
+          social_link: social,
+          headline: expertise.length > 0 ? `${expertise[0]} expert` : null,
+        }),
+      });
+      if (res.status === 401) {
+        window.location.href = "/creator";
+        return;
+      }
+      if (!res.ok) {
+        // fallback: still allow navigation for now
+        window.location.href = "/creator";
+        return;
+      }
+      window.location.href = "/creator";
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-zinc-50">
+      <header className="mx-auto max-w-4xl px-6 py-6 flex items-center justify-between">
+        <div className="text-base md:text-lg font-semibold tracking-tight">
+          GetAWay
+        </div>
+        <a
+          href="/login"
+          className="text-sm text-zinc-600 hover:text-zinc-900 underline offset-2"
+        >
+          Back to sign in
+        </a>
+      </header>
+
+      <main className="mx-auto max-w-4xl px-6 pb-20">
+        <div className="rounded-3xl bg-white shadow-[0_1px_0_rgba(0,0,0,0.06)] ring-1 ring-zinc-100 p-6 md:p-8">
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+            Hello there!
+          </h1>
+          <p className="text-sm text-zinc-600 mt-1">
+            In a few moments you will be ready to share your expertise & time
+          </p>
+
+          <form onSubmit={handleNext} className="mt-6 space-y-6">
+            <div>
+              <label className="text-sm font-medium">
+                Connect your social account
+              </label>
+              <input
+                value={social}
+                onChange={(e) => setSocial(e.target.value)}
+                placeholder="https://www.linkedin.com/in/your-profile"
+                className="mt-2 w-full rounded-xl border border-zinc-300 px-3 py-2 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-zinc-400 transition"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Your page link</label>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="rounded-xl border border-zinc-300 px-3 py-2 text-sm text-zinc-600 bg-zinc-50">
+                  getaway.io/
+                </span>
+                <input
+                  value={slug}
+                  onChange={(e) =>
+                    setSlug(
+                      e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-_]/g, "")
+                        .slice(0, 32)
+                    )
+                  }
+                  placeholder="your_name"
+                  className="flex-1 rounded-xl border border-zinc-300 px-3 py-2 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-zinc-400 transition"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Country</label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-300 px-3 py-2 bg-white focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-zinc-400"
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="opacity-60">
+                <label className="text-sm font-medium">Currency</label>
+                <input
+                  disabled
+                  className="mt-2 w-full rounded-xl border border-zinc-200 px-3 py-2 bg-zinc-50"
+                  placeholder="Coming soon"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">
+                Select your expertise
+              </label>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {EXPERTISE.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggle(tag)}
+                    className={
+                      "rounded-full px-3 py-1.5 text-sm transition border " +
+                      (expertise.includes(tag)
+                        ? "bg-black text-white border-black shadow-sm"
+                        : "border-zinc-300 hover:bg-zinc-50")
+                    }
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={!canNext || saving}
+                className="inline-flex items-center justify-center rounded-2xl bg-black text-white px-6 py-2.5 text-sm font-medium shadow-sm hover:bg-zinc-900 active:bg-zinc-800 disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Next"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  );
+}
