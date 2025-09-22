@@ -1,0 +1,211 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { getBrowserSupabaseClient } from "@/lib/supabase";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"enterEmail" | "password" | "magic">(
+    "enterEmail"
+  );
+  const [isSignup, setIsSignup] = useState(false);
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  async function sendMagicLink(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const supabase = getBrowserSupabaseClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/auth/callback`
+            : undefined,
+      },
+    });
+    if (error) setError(error.message);
+    else setSent(true);
+  }
+
+  // OAuth removed per requirements; keep email + password/magic link only
+
+  async function continueWithPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (mode === "enterEmail") {
+      setMode("password");
+      return;
+    }
+    const supabase = getBrowserSupabaseClient();
+    setLoading(true);
+    if (isSignup) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) setError(error.message);
+      else setSent(true);
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) setError(error.message);
+      else router.replace("/dashboard");
+    }
+    setLoading(false);
+  }
+
+  function isValidEmail(value: string) {
+    return /[^@\s]+@[^@\s]+\.[^@\s]+/.test(value);
+  }
+
+  return (
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
+      <div className="hidden md:block relative bg-[#FAD7A1]">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-80 h-80 rounded-full bg-white/40" />
+        </div>
+      </div>
+      <div className="flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+          <div className="mb-10">
+            <div className="text-sm tracking-wide text-zinc-500 mb-2">
+              GetAWay
+            </div>
+            <h1 className="text-5xl font-serif leading-tight text-zinc-900">
+              Better resume,
+              <span className="whitespace-nowrap"> better&#8209;hiring.</span>
+            </h1>
+          </div>
+          {sent ? (
+            <p className="text-sm">
+              Check your email for a magic link to sign in.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {/* Step 1: Email */}
+              {mode !== "password" && (
+                <form onSubmit={continueWithPassword} className="space-y-4">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email"
+                    required
+                    className="w-full rounded-lg border border-pink-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  />
+                  {error && <p className="text-sm text-red-600">{error}</p>}
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={!isValidEmail(email)}
+                      className="rounded-lg bg-black text-white px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-900 active:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                    <button
+                      type="button"
+                      onClick={sendMagicLink}
+                      className="rounded-lg border px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-50 active:bg-zinc-100"
+                    >
+                      Send magic link
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 2: Password Sign in / Sign up */}
+              {mode === "password" && (
+                <form onSubmit={continueWithPassword} className="space-y-4">
+                  <div className="text-sm text-zinc-600">
+                    {email}{" "}
+                    <button
+                      type="button"
+                      className="ml-2 underline"
+                      onClick={() => {
+                        setMode("enterEmail");
+                        setPassword("");
+                      }}
+                    >
+                      Change
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Password"
+                    required
+                    className="w-full rounded-lg border border-pink-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  />
+                  {error && <p className="text-sm text-red-600">{error}</p>}
+                  <div className="flex items-center justify-between text-sm">
+                    <label className="inline-flex items-center gap-2 select-none">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="rounded border-zinc-300"
+                      />
+                      Keep me signed in
+                    </label>
+                    <button
+                      type="button"
+                      className="underline cursor-pointer"
+                      onClick={async () => {
+                        const supabase = getBrowserSupabaseClient();
+                        setError(null);
+                        const { error } =
+                          await supabase.auth.resetPasswordForEmail(email, {
+                            redirectTo: `${window.location.origin}/auth/callback`,
+                          });
+                        if (error) setError(error.message);
+                        else setSent(true);
+                      }}
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="rounded-lg bg-black text-white px-5 py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? "Working…" : "Sign in"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode("enterEmail")}
+                      className="rounded-lg border px-5 py-3 cursor-pointer"
+                    >
+                      Back
+                    </button>
+                  </div>
+                  {/* magic link and create account controls intentionally removed */}
+                </form>
+              )}
+
+              {/* OAuth removed */}
+            </div>
+          )}
+          <p className="text-xs text-zinc-600 mt-8">
+            Looking for your account?{" "}
+            <a href="#" className="underline">
+              Sign in
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
