@@ -59,7 +59,7 @@ export default function LoginPage() {
         password,
       });
       if (error) setError(error.message);
-      else router.replace("/dashboard");
+      else router.replace("/reviewer");
     }
     setLoading(false);
   }

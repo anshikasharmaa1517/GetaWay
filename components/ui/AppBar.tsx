@@ -17,6 +17,12 @@ export function AppBar() {
             Dashboard
           </Link>
           <Link
+            href="/reviewer"
+            className="rounded-full px-3 py-1.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            Reviewers
+          </Link>
+          <Link
             href="/upload"
             className="rounded-full px-3 py-1.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >

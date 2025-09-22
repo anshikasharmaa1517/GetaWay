@@ -3,7 +3,9 @@ import { getServerSupabaseClient } from "@/lib/supabase-server";
 import { AppBar } from "@/components/ui/AppBar";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { StatusChip } from "@/components/ui/StatusChip";
-import { OnboardingModal } from "@/components/OnboardingModal";
+import { ChangePasswordCard } from "@/components/ChangePasswordCard";
+import Image from "next/image";
+import { headers } from "next/headers";
 
 export default async function DashboardPage() {
   const supabase = await getServerSupabaseClient();
@@ -18,10 +20,11 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
+  // reviewers moved off dashboard
+
   return (
     <div>
       <AppBar />
-      <OnboardingModal />
       <main className="mx-auto max-w-6xl px-4 py-10">
         <section className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight">
@@ -79,6 +82,8 @@ export default async function DashboardPage() {
                 </div>
               </CardBody>
             </Card>
+
+            {/* Reviewers moved to /reviewer */}
           </div>
 
           <div className="space-y-4">
@@ -93,6 +98,7 @@ export default async function DashboardPage() {
                 </div>
               </CardBody>
             </Card>
+            <ChangePasswordCard />
             <Card>
               <CardHeader
                 title="Notifications"
@@ -107,6 +113,7 @@ export default async function DashboardPage() {
                 </form>
               </CardBody>
             </Card>
+            {/* Right column now only profile/notifications */}
           </div>
         </div>
       </main>

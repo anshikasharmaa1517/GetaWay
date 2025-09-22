@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Employment = "Yes" | "Not currently" | "Student";
 
 export function OnboardingModal() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [employment, setEmployment] = useState<Employment | null>(null);
@@ -27,6 +30,31 @@ export function OnboardingModal() {
   // API-backed typeahead results
   const [collegeResults, setCollegeResults] = useState<string[]>([]);
   const [locationResults, setLocationResults] = useState<string[]>([]);
+  const [jobTitleResults, setJobTitleResults] = useState<string[]>([]);
+
+  // Common job titles (simple local dictionary)
+  const COMMON_TITLES = [
+    "Software Engineer",
+    "Frontend Engineer",
+    "Backend Engineer",
+    "Full Stack Engineer",
+    "Mobile Engineer",
+    "Data Scientist",
+    "Machine Learning Engineer",
+    "Data Engineer",
+    "Product Manager",
+    "Designer",
+    "Product Designer",
+    "UI/UX Designer",
+    "DevOps Engineer",
+    "Site Reliability Engineer",
+    "Cloud Engineer",
+    "QA Engineer",
+    "Security Engineer",
+    "AI Researcher",
+    "Business Analyst",
+    "Technical Program Manager",
+  ];
 
   useEffect(() => {
     async function check() {
@@ -98,8 +126,44 @@ export function OnboardingModal() {
     };
   }, [desiredLocation]);
 
+  // Job titles: try API, fall back to local list
+  useEffect(() => {
+    const controller = new AbortController();
+    const id = setTimeout(async () => {
+      const q = desiredJobTitle.trim();
+      if (q.length < 2) {
+        setJobTitleResults([]);
+        return;
+      }
+      try {
+        const r = await fetch(
+          `/api/suggest/job-title?q=${encodeURIComponent(q)}`,
+          {
+            signal: controller.signal,
+          }
+        );
+        if (r.ok) {
+          const items = (await r.json()) as string[];
+          if (Array.isArray(items) && items.length > 0) {
+            setJobTitleResults(items.slice(0, 8));
+            return;
+          }
+        }
+      } catch {}
+      const filtered = COMMON_TITLES.filter((t) =>
+        t.toLowerCase().includes(q.toLowerCase())
+      );
+      setJobTitleResults(filtered.slice(0, 8));
+    }, 250);
+    return () => {
+      controller.abort();
+      clearTimeout(id);
+    };
+  }, [desiredJobTitle]);
+
   async function save() {
     setSaving(true);
+    setSaveError(null);
     const payload: any = {
       employment_status: employment,
       desired_job_title: desiredJobTitle || null,
@@ -115,13 +179,24 @@ export function OnboardingModal() {
       payload.industry = industry || null;
       payload.looking_for = lookingFor || null;
     }
-    await fetch("/api/profile", {
+    const res = await fetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    if (!res.ok) {
+      try {
+        const data = await res.json();
+        setSaveError(data?.error || "Failed to save");
+      } catch {
+        setSaveError("Failed to save");
+      }
+      setSaving(false);
+      return;
+    }
     setSaving(false);
     setOpen(false);
+    router.push("/reviewer");
   }
 
   // Ensure the backdrop appears immediately on first paint to avoid exposing
@@ -179,6 +254,7 @@ export function OnboardingModal() {
               save();
             }}
           >
+            {saveError && <p className="text-sm text-red-600">{saveError}</p>}
             {employment === "Student" && (
               <>
                 <p className="text-sm text-zinc-600">
@@ -266,12 +342,38 @@ export function OnboardingModal() {
             )}
 
             {/* Common discovery fields */}
-            <input
-              value={desiredJobTitle}
-              onChange={(e) => setDesiredJobTitle(e.target.value)}
-              placeholder="Desired job title"
-              className="w-full rounded-xl border border-zinc-300 px-4 py-2 text-sm"
-            />
+            <div className="relative">
+              <input
+                value={desiredJobTitle}
+                onChange={(e) => setDesiredJobTitle(e.target.value)}
+                onBlur={() => setTimeout(() => setJobTitleResults([]), 100)}
+                placeholder="Desired job title"
+                className="w-full rounded-xl border border-zinc-300 px-4 py-2 text-sm"
+              />
+              {jobTitleResults.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-auto rounded-xl border border-zinc-200 bg-white shadow-xl z-10">
+                  {jobTitleResults.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setDesiredJobTitle(t);
+                        setJobTitleResults([]);
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setDesiredJobTitle(t);
+                        setJobTitleResults([]);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-zinc-50 cursor-pointer"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="relative">
               <input
                 value={desiredLocation}
