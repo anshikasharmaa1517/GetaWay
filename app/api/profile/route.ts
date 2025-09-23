@@ -10,7 +10,7 @@ export async function GET() {
   const { data } = await supabase
     .from("profiles")
     .select(
-      "onboarded, employment_status, student_university, student_degree, student_graduation_year, desired_job_title, desired_location, current_role, years_experience, industry, looking_for"
+      "onboarded, employment_status, student_university, student_degree, student_graduation_year, desired_job_title, desired_location, \"current_role\", years_experience, industry, looking_for"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     student_graduation_year: body?.student_graduation_year ?? null,
     desired_job_title: body?.desired_job_title ?? null,
     desired_location: body?.desired_location ?? null,
-    current_role: body?.current_role ?? null,
+    "current_role": body?.current_role ?? null,
     years_experience: body?.years_experience ?? null,
     industry: body?.industry ?? null,
     looking_for: body?.looking_for ?? null,

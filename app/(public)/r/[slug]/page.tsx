@@ -26,6 +26,16 @@ export default async function PublicReviewerPage({ params }: Props) {
     );
   }
 
+  // Determine following state (server fetch; client cookies forwarded by Next)
+  const followRes = await fetch(
+    `${base}/api/follow?slug=${encodeURIComponent(params.slug)}`,
+    { cache: "no-store" }
+  );
+  const followJson = followRes.ok
+    ? await followRes.json()
+    : { following: false };
+  const following = !!followJson.following;
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <main className="mx-auto max-w-3xl px-6 py-10">
@@ -63,6 +73,29 @@ export default async function PublicReviewerPage({ params }: Props) {
                 </a>
               )}
             </div>
+          </div>
+
+          <div className="mt-6">
+            {following ? (
+              <a
+                href={`/upload?to=${encodeURIComponent(params.slug)}`}
+                className="inline-flex items-center rounded-xl bg-black text-white px-4 py-2 text-sm hover:bg-zinc-900"
+              >
+                Share your resume
+              </a>
+            ) : (
+              <form method="post" action="/api/follow" className="inline">
+                <input type="hidden" name="slug" value={params.slug} />
+                <input type="hidden" name="action" value="follow" />
+                <input type="hidden" name="next" value={`/r/${params.slug}`} />
+                <button
+                  type="submit"
+                  className="inline-flex items-center rounded-xl border px-4 py-2 text-sm hover:bg-zinc-50"
+                >
+                  Follow to share resume
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </main>

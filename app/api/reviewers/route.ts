@@ -247,18 +247,94 @@ export async function POST(req: NextRequest) {
     social_link: social,
   };
 
-  const { data, error } = await supabase
+  // Try to find existing reviewer by user_id first
+  const { data: existing } = await supabase
     .from("reviewers")
-    .upsert(payload, { onConflict: "slug" })
-    .select()
-    .single();
+    .select("id, slug")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  console.log("Existing reviewer for user:", existing);
+  console.log("Payload slug:", payload.slug);
+
+  let data, error;
+
+  if (existing) {
+    // Update existing reviewer
+    const result = await supabase
+      .from("reviewers")
+      .update(payload)
+      .eq("user_id", user.id)
+      .select()
+      .single();
+    data = result.data;
+    error = result.error;
+  } else {
+    // Check if slug is already taken by another user, generate unique one if needed
+    if (payload.slug) {
+      let finalSlug = payload.slug;
+      let counter = 1;
+
+      console.log("Checking slug conflicts for:", finalSlug);
+
+      while (true) {
+        const { data: slugExists } = await supabase
+          .from("reviewers")
+          .select("id, user_id")
+          .eq("slug", finalSlug)
+          .maybeSingle();
+
+        console.log("Slug check result:", slugExists);
+
+        // If no slug exists, or if it exists but belongs to the same user, we can use it
+        if (!slugExists || slugExists.user_id === user.id) {
+          console.log("Slug is available or belongs to same user");
+          break;
+        }
+
+        // Generate alternative slug
+        finalSlug = `${payload.slug}-${counter}`;
+        counter++;
+        console.log("Trying alternative slug:", finalSlug);
+
+        // Prevent infinite loop
+        if (counter > 100) {
+          return new Response(
+            JSON.stringify({
+              error: "slug_generation_failed",
+              message:
+                "Unable to generate a unique page link. Please try a different one.",
+            }),
+            {
+              status: 400,
+              headers: { "content-type": "application/json" },
+            }
+          );
+        }
+      }
+
+      console.log("Final slug:", finalSlug);
+      payload.slug = finalSlug;
+    }
+
+    // Insert new reviewer
+    const result = await supabase
+      .from("reviewers")
+      .insert(payload)
+      .select()
+      .single();
+    data = result.data;
+    error = result.error;
+  }
 
   if (error) {
+    console.error("Reviewers API error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { "content-type": "application/json" },
     });
   }
+
   return new Response(JSON.stringify({ reviewer: data }), {
     status: 200,
     headers: { "content-type": "application/json" },

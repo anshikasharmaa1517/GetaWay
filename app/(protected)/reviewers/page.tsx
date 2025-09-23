@@ -95,9 +95,17 @@ export default async function ReviewersPage() {
                     >
                       View
                     </a>
-                    <button className="text-sm px-3 py-1 rounded-full bg-black text-white">
-                      Follow
-                    </button>
+                    <form method="post" action="/api/follow">
+                      <input type="hidden" name="slug" value={r.slug || ""} />
+                      <input type="hidden" name="action" value="follow" />
+                      <input type="hidden" name="next" value="/reviewers" />
+                      <button
+                        type="submit"
+                        className="text-sm px-3 py-1 rounded-full bg-black text-white"
+                      >
+                        Follow
+                      </button>
+                    </form>
                   </div>
                 </div>
               ))}
