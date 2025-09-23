@@ -55,7 +55,7 @@ export default function LoginPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Freviewers`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fdashboard`,
         },
       });
       if (error) setError(error.message);
@@ -65,8 +65,31 @@ export default function LoginPage() {
         email,
         password,
       });
-      if (error) setError(error.message);
-      else router.replace(nextPath);
+      if (error) {
+        setError(error.message);
+      } else {
+        // Determine user role and redirect accordingly
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', (await supabase.auth.getUser()).data.user?.id)
+            .single();
+          
+          const role = profile?.role || 'user';
+          let redirectPath = '/dashboard';
+          
+          if (role === 'admin') {
+            redirectPath = '/admin';
+          } else if (role === 'reviewer') {
+            redirectPath = '/creator';
+          }
+          
+          router.replace(redirectPath);
+        } catch {
+          router.replace('/dashboard');
+        }
+      }
     }
     setLoading(false);
   }

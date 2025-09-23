@@ -112,7 +112,25 @@ export async function GET(req: NextRequest) {
         headers: { "content-type": "application/json" },
       });
     }
-    return new Response(JSON.stringify({ reviewer: data ?? null }), {
+
+    // Get follower count
+    let followerCount = 0;
+    if (data) {
+      const { count } = await supabase
+        .from("follows")
+        .select("*", { count: "exact", head: true })
+        .eq("reviewer_id", data.user_id);
+      followerCount = count || 0;
+    }
+
+    const reviewerWithStats = data
+      ? {
+          ...data,
+          follower_count: followerCount,
+        }
+      : null;
+
+    return new Response(JSON.stringify({ reviewer: reviewerWithStats }), {
       headers: { "content-type": "application/json" },
     });
   }
@@ -164,21 +182,29 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const transformed = (data ?? []).map((r) => ({
-    id: r.id,
-    name: r.display_name ?? "",
-    role:
-      Array.isArray(r.expertise) && r.expertise.length > 0
-        ? r.expertise[0]
-        : "",
-    company: r.company ?? "",
-    headline: r.headline ?? "",
-    experienceYears: r.experience_years ?? 0,
-    photoUrl: r.photo_url ?? "https://i.pravatar.cc/100?img=1",
-    rating: typeof r.rating === "number" ? r.rating : 0,
-    reviews: typeof r.reviews === "number" ? r.reviews : 0,
-    slug: r.slug ?? null,
-  }));
+  const transformed = (data ?? []).map((r) => {
+    console.log("Raw reviewer from DB:", {
+      display_name: r.display_name,
+      company: r.company,
+      slug: r.slug,
+    });
+    return {
+      id: r.id,
+      user_id: r.user_id, // Add user_id for follow status
+      name: r.display_name ?? "",
+      role:
+        Array.isArray(r.expertise) && r.expertise.length > 0
+          ? r.expertise[0]
+          : "",
+      company: r.company || "", // Use || instead of ?? to handle empty strings
+      headline: r.headline ?? "",
+      experienceYears: r.experience_years ?? 0,
+      photoUrl: r.photo_url ?? "https://i.pravatar.cc/100?img=1",
+      rating: typeof r.rating === "number" ? r.rating : 0,
+      reviews: typeof r.reviews === "number" ? r.reviews : 0,
+      slug: r.slug ?? null,
+    };
+  });
 
   return new Response(JSON.stringify({ reviewers: transformed }), {
     headers: { "content-type": "application/json" },

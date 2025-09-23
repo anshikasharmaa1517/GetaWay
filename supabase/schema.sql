@@ -10,12 +10,14 @@ create table if not exists public.resumes (
   score int,
   notes text,
   file_url text not null,
+  reviewer_slug text,
   created_at timestamptz not null default now()
 );
 
--- Minimal profile table for onboarding state
+-- User profiles table with role support
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
+  role text not null default 'user' check (role in ('user', 'reviewer', 'admin')),
   onboarded boolean not null default false,
   employment_status text,
   -- Student fields
@@ -29,6 +31,9 @@ create table if not exists public.profiles (
   years_experience int,
   industry text,
   looking_for text,
+  -- Profile metadata
+  avatar_url text,
+  created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
@@ -48,6 +53,20 @@ begin
       for insert with check (auth.uid() = id);
     create policy "Profiles self update" on public.profiles
       for update using (auth.uid() = id) with check (auth.uid() = id);
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profiles' and policyname='Reviewers can view profiles of users who shared resumes'
+  ) then
+    create policy "Reviewers can view profiles of users who shared resumes" on public.profiles
+      for select using (
+        id in (
+          select user_id from public.resumes 
+          where reviewer_slug is not null and 
+          reviewer_slug in (
+            select slug from public.reviewers where user_id = auth.uid()
+          )
+        )
+      );
   end if;
 end $$;
 
@@ -96,6 +115,91 @@ begin
     create trigger set_updated_at
       before update on public.reviewers
       for each row execute function public.set_updated_at();
+  end if;
+end $$;
+
+-- Function to automatically set user role based on reviewer profile
+create or replace function public.set_user_role()
+returns trigger as $$
+begin
+  -- If a reviewer profile is created, update the user's role to 'reviewer'
+  if TG_OP = 'INSERT' then
+    update public.profiles 
+    set role = 'reviewer', updated_at = now()
+    where id = new.user_id and role = 'user';
+  end if;
+  
+  -- If a reviewer profile is deleted, check if user should be demoted to 'user'
+  if TG_OP = 'DELETE' then
+    -- Only demote if they don't have admin role
+    update public.profiles 
+    set role = 'user', updated_at = now()
+    where id = old.user_id and role = 'reviewer';
+  end if;
+  
+  return coalesce(new, old);
+end;
+$$ language plpgsql;
+
+-- Trigger to automatically update user role when reviewer profile changes
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'set_user_role_trigger' and tgrelid = 'public.reviewers'::regclass) then
+    create trigger set_user_role_trigger
+      after insert or delete on public.reviewers
+      for each row execute function public.set_user_role();
+  end if;
+end $$;
+
+-- Reviews table for storing reviewer feedback
+create table if not exists public.reviews (
+  id uuid primary key default gen_random_uuid(),
+  reviewer_id uuid not null references public.reviewers(id) on delete cascade,
+  resume_id uuid not null references public.resumes(id) on delete cascade,
+  score int not null check (score >= 1 and score <= 10),
+  feedback text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(reviewer_id, resume_id)
+);
+
+-- Add updated_at trigger for reviews
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'set_updated_at' and tgrelid = 'public.reviews'::regclass) then
+    create trigger set_updated_at
+      before update on public.reviews
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
+
+-- Enable RLS for reviews
+alter table public.reviews enable row level security;
+
+-- Reviews RLS policies
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='reviews' and policyname='reviews_read_own'
+  ) then
+    create policy "reviews_read_own" on public.reviews
+      for select using (auth.uid() = reviewer_id);
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='reviews' and policyname='reviews_insert_own'
+  ) then
+    create policy "reviews_insert_own" on public.reviews
+      for insert with check (auth.uid() = reviewer_id);
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='reviews' and policyname='reviews_update_own'
+  ) then
+    create policy "reviews_update_own" on public.reviews
+      for update using (auth.uid() = reviewer_id) with check (auth.uid() = reviewer_id);
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='reviews' and policyname='reviews_read_all'
+  ) then
+    create policy "reviews_read_all" on public.reviews
+      for select using (true);
   end if;
 end $$;
 
@@ -182,6 +286,17 @@ begin
     create policy "Admins can update resumes" on public.resumes
       for update using (
         auth.email() = any (string_to_array(coalesce(current_setting('app.admin_emails', true), ''), ','))
+      );
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='resumes' and policyname='Reviewers can view resumes shared with them'
+  ) then
+    create policy "Reviewers can view resumes shared with them" on public.resumes
+      for select using (
+        reviewer_slug is not null and 
+        reviewer_slug in (
+          select slug from public.reviewers where user_id = auth.uid()
+        )
       );
   end if;
 end $$;

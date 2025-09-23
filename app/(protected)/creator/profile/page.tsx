@@ -64,6 +64,7 @@ export default function EditProfilePage() {
           display_name: data.display_name,
           slug: data.slug,
           country: data.country,
+          company: data.company,
           expertise: data.expertise,
           headline: data.headline,
           social_link: data.social_link,
@@ -77,6 +78,10 @@ export default function EditProfilePage() {
           setError(
             errorData.message ||
               "This page link is already taken. Please choose a different one."
+          );
+        } else if (errorData.error === "social_link_taken") {
+          setError(
+            "This LinkedIn profile is already registered by another reviewer. Please use a different LinkedIn profile or contact support if you believe this is an error."
           );
         } else {
           setError(errorData.error || "Failed to save changes");
@@ -133,10 +138,16 @@ export default function EditProfilePage() {
         </div>
         <div className="flex items-center gap-4">
           <a
-            href="/reviewer"
+            href="/creator"
             className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200"
           >
-            Public reviewers
+            Creator Dashboard
+          </a>
+          <a
+            href="/creator/reviews"
+            className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200"
+          >
+            My Reviews
           </a>
           {data?.slug && (
             <a
@@ -398,6 +409,21 @@ export default function EditProfilePage() {
                     }
                     className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
                     placeholder="Your name"
+                  />
+                </div>
+
+                {/* Company */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-3">
+                    Current company
+                  </label>
+                  <input
+                    value={data.company ?? ""}
+                    onChange={(e) =>
+                      setData({ ...data, company: e.target.value })
+                    }
+                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+                    placeholder="e.g., Google, Microsoft, Startup Inc."
                   />
                 </div>
 

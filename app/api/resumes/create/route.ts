@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     const status: string = body?.status ?? "Pending";
     const notes: string | undefined = body?.notes;
     const score: number | undefined = body?.score;
+    const reviewer_slug: string | undefined = body?.reviewer_slug;
     if (!file_url) return NextResponse.json({ error: "file_url is required" }, { status: 400 });
 
     const admin = getAdminSupabaseClient();
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
       notes,
       score,
       file_url,
+      reviewer_slug,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 

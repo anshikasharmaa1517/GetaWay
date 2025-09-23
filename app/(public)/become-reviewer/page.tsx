@@ -33,6 +33,7 @@ export default function BecomeReviewerPage() {
   const [social, setSocial] = useState("");
   const [slug, setSlug] = useState("");
   const [country, setCountry] = useState("India");
+  const [company, setCompany] = useState("");
   const [expertise, setExpertise] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -80,6 +81,7 @@ export default function BecomeReviewerPage() {
         body: JSON.stringify({
           display_name: slug,
           country,
+          company: company.trim() || null,
           expertise,
           slug,
           social_link: social,
@@ -178,6 +180,16 @@ export default function BecomeReviewerPage() {
                   className="flex-1 rounded-xl border border-zinc-300 px-3 py-2 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-zinc-400 transition"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Current company</label>
+              <input
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="e.g., Google, Microsoft, Startup Inc."
+                className="mt-2 w-full rounded-xl border border-zinc-300 px-3 py-2 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-zinc-400 transition"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -4,292 +4,311 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabaseClient } from "@/lib/supabase";
 import { AppBar } from "@/components/ui/AppBar";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { StatusChip } from "@/components/ui/StatusChip";
-import { ChangePasswordCard } from "@/components/ChangePasswordCard";
 
-interface Resume {
+interface SharedResume {
   id: string;
+  file_url: string;
   status: string;
   score: number | null;
   notes: string | null;
   created_at: string;
-  file_url: string;
-}
-
-interface User {
-  id: string;
-  email?: string;
-  user_metadata: {
-    avatar_url?: string;
-    picture?: string;
-  };
+  reviewer_slug: string | null;
+  reviewer: {
+    display_name: string;
+    company: string | null;
+    photo_url: string | null;
+    slug: string;
+  } | null;
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [sharedResumes, setSharedResumes] = useState<SharedResume[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    async function loadData() {
-      const supabase = getBrowserSupabaseClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    async function loadSharedResumes() {
+      try {
+        const supabase = getBrowserSupabaseClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.push("/login");
-        return;
+        if (!user) {
+          router.push("/login");
+          return;
+        }
+
+        // Get resumes that have been shared with reviewers
+        const { data: resumes, error } = await supabase
+          .from("resumes")
+          .select(
+            `
+            id,
+            file_url,
+            status,
+            score,
+            notes,
+            created_at,
+            reviewer_slug
+          `
+          )
+          .eq("user_id", user.id)
+          .not("reviewer_slug", "is", null)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching shared resumes:", error);
+          return;
+        }
+
+        console.log("Found resumes:", resumes);
+
+        // Get reviewer details for each resume
+        const resumesWithReviewers = await Promise.all(
+          (resumes || []).map(async (resume) => {
+            if (!resume.reviewer_slug) return { ...resume, reviewer: null };
+
+            const { data: reviewer } = await supabase
+              .from("reviewers")
+              .select("display_name, company, photo_url, slug")
+              .eq("slug", resume.reviewer_slug)
+              .single();
+
+            return { ...resume, reviewer };
+          })
+        );
+
+        console.log("Final resumes with reviewers:", resumesWithReviewers);
+        setSharedResumes(resumesWithReviewers);
+      } catch (error) {
+        console.error("Error loading shared resumes:", error);
+      } finally {
+        setLoading(false);
       }
-
-      setUser(user);
-
-      // Load avatar URL
-      const avatarUrl =
-        (user.user_metadata as any)?.avatar_url ||
-        (user.user_metadata as any)?.picture ||
-        null;
-      setAvatarUrl(avatarUrl);
-
-      // Load resumes
-      const { data: resumes } = await supabase
-        .from("resumes")
-        .select("id, status, score, notes, created_at, file_url")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      setResumes(resumes || []);
-      setLoading(false);
     }
 
-    loadData();
+    loadSharedResumes();
   }, [router]);
-
-  async function uploadPhoto(file: File) {
-    if (!file) return;
-    try {
-      setUploading(true);
-      setError(null);
-      const supabase = getBrowserSupabaseClient();
-      const bucket = "avatars";
-      const ext = file.name.includes(".")
-        ? file.name.split(".").pop() || "jpg"
-        : "jpg";
-      const fileName = `avatar-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-      if (error) {
-        setError(error.message);
-        return;
-      }
-      const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
-      if (data.publicUrl) {
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: { avatar_url: data.publicUrl },
-        });
-        if (updateError) setError(updateError.message);
-        else setAvatarUrl(data.publicUrl);
-      }
-    } finally {
-      setUploading(false);
-    }
-  }
 
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen bg-gray-50">
         <AppBar />
-        <main className="mx-auto max-w-6xl px-4 py-10">
-          <div className="text-center">Loading...</div>
+        <main className="mx-auto max-w-6xl px-6 py-12">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-3"></div>
+            <div className="h-6 bg-gray-200 rounded w-1/2 mb-12"></div>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-3xl p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-gray-200 rounded-2xl"></div>
+                    <div className="flex-1">
+                      <div className="h-5 bg-gray-200 rounded w-1/3 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                    <div className="h-8 bg-gray-200 rounded w-20"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </main>
       </div>
     );
   }
 
-  if (!user) return null;
-
   return (
     <div className="min-h-screen bg-gray-50">
       <AppBar />
-      <main className="mx-auto max-w-7xl px-6 py-12">
-        {/* Hero Section */}
-        <section className="mb-12">
+      <main className="mx-auto max-w-6xl px-6 py-12">
+        {/* Header */}
+        <div className="mb-8">
           <h1 className="text-4xl font-semibold tracking-tight text-gray-900 mb-3">
-            Welcome back
+            My Shared Resumes
           </h1>
-          <p className="text-lg text-gray-600 mb-8">
-            Upload your resume and track its review status.
+          <p className="text-lg text-gray-600">
+            Track which reviewers you've shared your resume with
           </p>
-          <a
-            className="inline-flex items-center justify-center rounded-2xl bg-gray-900 text-white px-8 py-4 text-base font-medium shadow-sm hover:bg-gray-800 transition-colors duration-200"
-            href="/upload"
-          >
-            Upload resume
-          </a>
-        </section>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-8 py-6 border-b border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Your submissions
-                </h2>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {resumes.map((r) => (
-                  <div
-                    key={r.id}
-                    className="px-8 py-6 hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <StatusChip status={r.status} />
-                          {typeof r.score === "number" && (
-                            <span className="text-sm font-medium text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
-                              Score: {r.score}
-                            </span>
-                          )}
+        {/* Shared Resumes List */}
+        <div className="space-y-4">
+          {sharedResumes.length > 0 ? (
+            sharedResumes.map((resume) => (
+              <div
+                key={resume.id}
+                className="bg-white rounded-3xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {/* Reviewer Photo */}
+                    <img
+                      src={resume.reviewer?.photo_url || "/favicon.ico"}
+                      alt={resume.reviewer?.display_name || "Reviewer"}
+                      className="h-12 w-12 rounded-2xl object-cover border border-gray-200"
+                    />
+
+                    {/* Reviewer Info */}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {resume.reviewer?.display_name || "Unknown Reviewer"}
+                      </h3>
+                      {resume.reviewer?.company && (
+                        <p className="text-sm text-gray-600">
+                          {resume.reviewer.company}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Shared on{" "}
+                        {new Date(resume.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+
+                    {/* Status and Actions */}
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                            resume.status === "Pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : resume.status === "Completed"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {resume.status}
                         </div>
-                        {r.notes && (
-                          <p className="text-sm text-gray-600 leading-relaxed">
-                            {r.notes}
+                        {resume.score && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Score: {resume.score}/10
                           </p>
                         )}
                       </div>
-                      <a
-                        className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors duration-150"
-                        href={r.file_url}
-                        target="_blank"
-                      >
-                        View PDF
-                      </a>
+
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={resume.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors duration-200"
+                        >
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>
+                          View Resume
+                        </a>
+
+                        {resume.reviewer?.slug && (
+                          <a
+                            href={`/r/${encodeURIComponent(
+                              resume.reviewer.slug
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center rounded-2xl bg-gray-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-gray-800 transition-colors duration-200"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                              />
+                            </svg>
+                            View Reviewer
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
-                ))}
-                {resumes.length === 0 && (
-                  <div className="px-8 py-12 text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <svg
-                        className="w-8 h-8 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
+
+                  {/* Notes Section */}
+                  {resume.notes && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-2xl">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">
+                        Review Notes:
+                      </h4>
+                      <p className="text-sm text-gray-700">{resume.notes}</p>
                     </div>
-                    <p className="text-gray-500 text-base">No uploads yet</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Upload your first resume to get started
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Profile Card */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-5 border-b border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900">Profile</h3>
-                <p className="text-sm text-gray-600 mt-1">Basic account info</p>
-              </div>
-              <div className="px-6 py-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <img
-                    src={avatarUrl || "/favicon.ico"}
-                    alt="Profile"
-                    className="h-12 w-12 rounded-2xl object-cover border border-gray-200"
-                  />
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer transition-colors duration-150">
-                      Change photo
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) uploadPhoto(file);
-                        }}
-                        className="hidden"
-                        disabled={uploading}
-                      />
-                    </label>
-                    {uploading && (
-                      <p className="text-xs text-gray-500 mt-1">Uploading...</p>
-                    )}
-                    {error && (
-                      <p className="text-xs text-red-500 mt-1">{error}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Email
-                    </p>
-                    <p className="text-sm text-gray-900 mt-1">
-                      {user.email || "Not provided"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      User ID
-                    </p>
-                    <p className="text-xs font-mono text-gray-600 mt-1 break-all">
-                      {user.id}
-                    </p>
-                  </div>
+                  )}
                 </div>
               </div>
-            </div>
-
-            {/* Change Password Card */}
-            <ChangePasswordCard />
-
-            {/* Notifications Card */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-5 border-b border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Notifications
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Get emails on status changes
-                </p>
-              </div>
-              <div className="px-6 py-6">
-                <label className="flex items-center gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    defaultChecked
+            ))
+          ) : (
+            /* Empty State */
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
-                  <span className="text-gray-700">
-                    Email me when my status changes
-                  </span>
-                </label>
+                </svg>
               </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No shared resumes yet
+              </h3>
+              <p className="text-gray-600 mb-6">
+                You haven't shared any resumes with reviewers yet. Start by
+                finding reviewers and sharing your resume.
+              </p>
+              <a
+                href="/reviewers"
+                className="inline-flex items-center justify-center rounded-2xl bg-gray-900 text-white px-6 py-3 text-sm font-semibold shadow-sm hover:bg-gray-800 transition-colors duration-200"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+                Find Reviewers
+              </a>
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>
