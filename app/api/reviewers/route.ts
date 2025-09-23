@@ -39,16 +39,89 @@ async function tryFetchOpenGraphImage(url: string): Promise<string | null> {
   return null;
 }
 
+function normalizeLinkedInUrl(input: string | null | undefined): string | null {
+  if (!input) return null;
+  try {
+    const u = new URL(input);
+    if (!u.hostname.includes("linkedin.com")) return input.trim();
+    // Keep scheme-agnostic, store host + pathname only, lowercase, trim trailing slash
+    let normalized = `${u.hostname}${u.pathname}`.toLowerCase();
+    if (normalized.endsWith("/")) normalized = normalized.slice(0, -1);
+    return normalized;
+  } catch {
+    return input.trim();
+  }
+}
+
+function limitWords(
+  s: string | null | undefined,
+  maxWords = 50
+): string | null {
+  if (!s) return s ?? null;
+  const words = s.trim().split(/\s+/);
+  if (words.length <= maxWords) return s;
+  return words.slice(0, maxWords).join(" ");
+}
+
 export async function GET(req: NextRequest) {
   const supabase = await getServerSupabaseClient();
   const { searchParams } = new URL(req.url);
   const role = (searchParams.get("role") || "").toLowerCase();
+  const slug = searchParams.get("slug");
+  const me = searchParams.get("me") === "1";
+
+  if (me) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({ error: "not_authenticated" }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    const { data, error } = await supabase
+      .from("reviewers")
+      .select(
+        "id, user_id, display_name, photo_url, company, experience_years, headline, country, expertise, rating, reviews, slug, social_link"
+      )
+      .eq("user_id", user.id)
+      .single();
+    if (error && error.code !== "PGRST116") {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({ reviewer: data ?? null }), {
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  if (slug) {
+    const { data, error } = await supabase
+      .from("reviewers")
+      .select(
+        "id, user_id, display_name, photo_url, company, experience_years, headline, country, expertise, rating, reviews, slug, social_link"
+      )
+      .eq("slug", slug)
+      .single();
+    if (error && error.code !== "PGRST116") {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({ reviewer: data ?? null }), {
+      headers: { "content-type": "application/json" },
+    });
+  }
 
   async function fetchAll(limit = 50) {
     return await supabase
       .from("reviewers")
       .select(
-        "id, user_id, display_name, photo_url, company, experience_years, headline, country, expertise, rating, reviews"
+        "id, user_id, display_name, photo_url, company, experience_years, headline, country, expertise, rating, reviews, slug"
       )
       .order("rating", { ascending: false })
       .order("reviews", { ascending: false })
@@ -63,7 +136,7 @@ export async function GET(req: NextRequest) {
     const attempt = await supabase
       .from("reviewers")
       .select(
-        "id, user_id, display_name, photo_url, company, experience_years, headline, country, expertise, rating, reviews"
+        "id, user_id, display_name, photo_url, company, experience_years, headline, country, expertise, rating, reviews, slug"
       )
       .ilike("headline", `%${role}%`)
       .order("rating", { ascending: false })
@@ -95,16 +168,16 @@ export async function GET(req: NextRequest) {
     id: r.id,
     name: r.display_name ?? "",
     role:
-      r.headline ??
-      (Array.isArray(r.expertise) && r.expertise.length > 0
+      Array.isArray(r.expertise) && r.expertise.length > 0
         ? r.expertise[0]
-        : ""),
+        : "",
     company: r.company ?? "",
     headline: r.headline ?? "",
     experienceYears: r.experience_years ?? 0,
     photoUrl: r.photo_url ?? "https://i.pravatar.cc/100?img=1",
     rating: typeof r.rating === "number" ? r.rating : 0,
     reviews: typeof r.reviews === "number" ? r.reviews : 0,
+    slug: r.slug ?? null,
   }));
 
   return new Response(JSON.stringify({ reviewers: transformed }), {
@@ -126,7 +199,8 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   let photoUrl: string | null = body.photo_url ?? null;
-  const social: string | null = body.social_link ?? null;
+  const socialRaw: string | null = body.social_link ?? null;
+  const social: string | null = normalizeLinkedInUrl(socialRaw);
 
   if (
     !photoUrl &&
@@ -141,17 +215,36 @@ export async function POST(req: NextRequest) {
     const seed = encodeURIComponent(body.display_name ?? "Reviewer");
     photoUrl = `https://ui-avatars.com/api/?name=${seed}&background=EEE&color=555&rounded=true&size=128`;
   }
+  // Enforce unique LinkedIn/social link across reviewers
+  if (social) {
+    const { data: existing, error: existingErr } = await supabase
+      .from("reviewers")
+      .select("id,user_id,social_link")
+      .eq("social_link", social)
+      .maybeSingle();
+    if (!existingErr && existing && existing.user_id !== user.id) {
+      return new Response(
+        JSON.stringify({
+          error: "social_link_taken",
+          message:
+            "This LinkedIn profile is already registered by another reviewer.",
+        }),
+        { status: 409, headers: { "content-type": "application/json" } }
+      );
+    }
+  }
+
   const payload = {
     user_id: user.id,
     display_name: body.display_name ?? null,
     photo_url: photoUrl,
     company: body.company ?? null,
     experience_years: body.experience_years ?? null,
-    headline: body.headline ?? null,
+    headline: limitWords(body.headline, 50),
     country: body.country ?? null,
     expertise: Array.isArray(body.expertise) ? body.expertise : [],
     slug: body.slug ?? null,
-    social_link: body.social_link ?? null,
+    social_link: social,
   };
 
   const { data, error } = await supabase

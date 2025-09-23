@@ -15,6 +15,7 @@ type Reviewer = {
   photoUrl: string;
   rating: number;
   reviews: number;
+  slug?: string | null;
 };
 
 async function getReviewers(role?: string): Promise<Reviewer[]> {
@@ -80,15 +81,17 @@ export default async function ReviewersPage() {
                         {r.experienceYears} yrs exp · {r.rating.toFixed(1)}★ (
                         {r.reviews})
                       </div>
-                      <div className="text-xs text-zinc-600 line-clamp-1">
+                      <div className="text-xs text-zinc-600 line-clamp-3">
                         {r.headline}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <a
-                      href="#"
+                      href={r.slug ? `/r/${encodeURIComponent(r.slug)}` : `#`}
                       className="text-sm px-3 py-1 rounded-full border"
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
                       View
                     </a>

@@ -6,6 +6,11 @@ import { getBrowserSupabaseClient } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
+  const params =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : null;
+  const nextPath = params?.get("next") || "/reviewers";
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +66,7 @@ export default function LoginPage() {
         password,
       });
       if (error) setError(error.message);
-      else router.replace("/reviewers");
+      else router.replace(nextPath);
     }
     setLoading(false);
   }
@@ -75,7 +80,7 @@ export default function LoginPage() {
       {/* Top bar */}
       <div className="absolute inset-x-0 top-0 flex items-center justify-end p-4 md:p-6">
         <a
-          href="/become-reviewer"
+          href="/become-reviewer-auth"
           className="rounded-full bg-black text-white px-5 md:px-6 py-2 md:py-2.5 text-xs md:text-sm font-medium shadow-sm hover:bg-zinc-900 active:bg-zinc-800 cursor-pointer"
         >
           Become reviewer

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { getBrowserSupabaseClient } from "@/lib/supabase";
 
 const COUNTRIES = [
   "India",
@@ -34,6 +35,8 @@ export default function BecomeReviewerPage() {
   const [country, setCountry] = useState("India");
   const [expertise, setExpertise] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [linkedinPhotoUrl, setLinkedinPhotoUrl] = useState<string | null>(null);
   const canNext = useMemo(
     () =>
       social.trim().length > 0 &&
@@ -53,6 +56,24 @@ export default function BecomeReviewerPage() {
     if (!canNext) return;
     setSaving(true);
     try {
+      let photo_url: string | null = linkedinPhotoUrl;
+      if (photoFile) {
+        try {
+          const supabase = getBrowserSupabaseClient();
+          const bucket = "reviewer-photos";
+          const ext = photoFile.name.includes(".")
+            ? photoFile.name.split(".").pop() || "jpg"
+            : "jpg";
+          const path = `${slug || "reviewer"}-${Date.now()}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from(bucket)
+            .upload(path, photoFile, { upsert: false, cacheControl: "3600" });
+          if (!upErr) {
+            const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+            photo_url = data.publicUrl || null;
+          }
+        } catch {}
+      }
       const res = await fetch("/api/reviewers", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -63,6 +84,7 @@ export default function BecomeReviewerPage() {
           slug,
           social_link: social,
           headline: expertise.length > 0 ? `${expertise[0]} expert` : null,
+          photo_url,
         }),
       });
       if (res.status === 401) {
@@ -79,6 +101,16 @@ export default function BecomeReviewerPage() {
       setSaving(false);
     }
   }
+
+  // Capture LinkedIn photo from localStorage (set in gateway after callback)
+  if (typeof window !== "undefined") {
+    if (!linkedinPhotoUrl) {
+      const val = localStorage.getItem("linkedin_photo_url");
+      if (val) setLinkedinPhotoUrl(val);
+    }
+  }
+
+  // No authentication from social URL; we simply store it when saving
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -104,6 +136,16 @@ export default function BecomeReviewerPage() {
           </p>
 
           <form onSubmit={handleNext} className="mt-6 space-y-6">
+            <div>
+              <label className="text-sm font-medium">Profile photo</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+                className="mt-2 block w-full text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border file:border-zinc-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-zinc-50"
+              />
+            </div>
+
             <div>
               <label className="text-sm font-medium">
                 Connect your social account
