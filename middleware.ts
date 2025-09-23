@@ -28,10 +28,17 @@ export async function middleware(request: NextRequest) {
       "/become-reviewer-auth",
     ];
 
+    // Temporarily allow review pages for testing
+    const isReviewPage = pathname.match(/^\/creator\/review\/[^\/]+$/);
+
     // Check if it's a public reviewer profile (e.g., /r/username)
     const isPublicReviewerProfile = pathname.match(/^\/r\/[^\/]+$/);
 
-    if (publicRoutes.includes(pathname) || isPublicReviewerProfile) {
+    if (
+      publicRoutes.includes(pathname) ||
+      isPublicReviewerProfile ||
+      isReviewPage
+    ) {
       return NextResponse.next();
     }
 

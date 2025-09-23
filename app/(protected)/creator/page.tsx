@@ -165,14 +165,27 @@ export default function CreatorDashboard() {
                 return (
                   <div
                     key={resume.id}
-                    className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer hover:shadow-md ${
+                    className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer hover:shadow-md select-none ${
                       isViewed
                         ? "bg-zinc-50 border border-zinc-200"
                         : "bg-blue-50 border border-blue-200 shadow-sm"
                     }`}
-                    onClick={() => {
-                      // TODO: Open review modal/page
-                      console.log("Open review for:", resume.id);
+                    style={{ cursor: "pointer" }}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      console.log("Clicked resume:", resume.id);
+                      console.log("Router object:", router);
+                      try {
+                        console.log(
+                          "Attempting navigation to:",
+                          `/creator/review/${resume.id}`
+                        );
+                        // Try using window.location instead of router.push
+                        window.location.href = `/creator/review/${resume.id}`;
+                        console.log("Navigation completed successfully");
+                      } catch (error) {
+                        console.error("Navigation error:", error);
+                      }
                     }}
                   >
                     <div className="flex items-center gap-3">
