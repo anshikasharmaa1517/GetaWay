@@ -20,9 +20,9 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const { score, feedback, status } = body;
+    const { score, feedback, status, review_status } = body;
 
-    if (!score || !feedback || !status) {
+    if (!score || !feedback || !status || !review_status) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -53,6 +53,7 @@ export async function POST(
         score: parseInt(score),
         notes: feedback,
         status: status,
+        review_status: review_status,
       })
       .eq("id", resolvedParams.id);
 

@@ -26,6 +26,7 @@ export default function ReviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [score, setScore] = useState<number>(0);
   const [feedback, setFeedback] = useState("");
+  const [reviewStatus, setReviewStatus] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const router = useRouter();
@@ -80,7 +81,7 @@ export default function ReviewPage() {
   }, [resumeId, router]);
 
   const handleSaveReview = async () => {
-    if (!reviewData || score === 0 || !feedback.trim()) return;
+    if (!reviewData || score === 0 || !feedback.trim() || !reviewStatus) return;
 
     setSaving(true);
     try {
@@ -91,6 +92,7 @@ export default function ReviewPage() {
           score,
           feedback: feedback.trim(),
           status: "Completed",
+          review_status: reviewStatus,
         }),
       });
 
@@ -297,6 +299,35 @@ export default function ReviewPage() {
               </div>
             </div>
 
+            {/* Review Status */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-zinc-700 mb-3">
+                Status
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setReviewStatus("Approved")}
+                  className={`px-4 py-2 rounded-lg border-2 font-medium transition-colors ${
+                    reviewStatus === "Approved"
+                      ? "border-green-500 bg-green-50 text-green-700"
+                      : "border-zinc-200 hover:border-zinc-300 text-zinc-700"
+                  }`}
+                >
+                  ✓ Approved
+                </button>
+                <button
+                  onClick={() => setReviewStatus("Needs Revision")}
+                  className={`px-4 py-2 rounded-lg border-2 font-medium transition-colors ${
+                    reviewStatus === "Needs Revision"
+                      ? "border-amber-500 bg-amber-50 text-amber-700"
+                      : "border-zinc-200 hover:border-zinc-300 text-zinc-700"
+                  }`}
+                >
+                  ↻ Needs Revision
+                </button>
+              </div>
+            </div>
+
             {/* Feedback */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-zinc-700 mb-3">
@@ -314,7 +345,9 @@ export default function ReviewPage() {
             <div className="space-y-3">
               <button
                 onClick={handleSaveReview}
-                disabled={saving || score === 0 || !feedback.trim()}
+                disabled={
+                  saving || score === 0 || !feedback.trim() || !reviewStatus
+                }
                 className="w-full px-6 py-3 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {saving ? "Saving..." : "Save Review"}

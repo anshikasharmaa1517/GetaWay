@@ -9,6 +9,7 @@ interface ReceivedResume {
   id: string;
   file_url: string;
   status: string;
+  review_status: string | null;
   score: number | null;
   notes: string | null;
   created_at: string;
@@ -20,10 +21,36 @@ interface ReceivedResume {
   } | null;
 }
 
+interface Message {
+  id: string;
+  sender_id: string;
+  message: string;
+  message_type: string;
+  created_at: string;
+}
+
+interface Conversation {
+  id: string;
+  resume_id: string;
+  user_id: string;
+  reviewer_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function CreatorDashboard() {
   const [receivedResumes, setReceivedResumes] = useState<ReceivedResume[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewerSlug, setReviewerSlug] = useState<string | null>(null);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<
+    Record<string, { conversation: Conversation; messages: Message[] }>
+  >({});
+  const [newMessages, setNewMessages] = useState<Record<string, string>>({});
+  const [sendingMessage, setSendingMessage] = useState<string | null>(null);
+  const [showConversationModal, setShowConversationModal] = useState<
+    string | null
+  >(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -67,6 +94,88 @@ export default function CreatorDashboard() {
 
     loadReceivedResumes();
   }, [router]);
+
+  const toggleCardExpansion = (cardId: string) => {
+    const newExpanded = expandedCard === cardId ? null : cardId;
+    setExpandedCard(newExpanded);
+
+    // Load conversation when expanding
+    if (newExpanded && !conversations[cardId]) {
+      loadConversation(cardId);
+    }
+  };
+
+  const isCardExpanded = (cardId: string) => expandedCard === cardId;
+
+  const openConversationModal = (resumeId: string) => {
+    setShowConversationModal(resumeId);
+    // Load conversation when opening modal
+    if (!conversations[resumeId]) {
+      loadConversation(resumeId);
+    }
+  };
+
+  const closeConversationModal = () => {
+    setShowConversationModal(null);
+  };
+
+  const loadConversation = async (resumeId: string) => {
+    try {
+      const response = await fetch(`/api/conversations?resume_id=${resumeId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setConversations((prev) => ({
+          ...prev,
+          [resumeId]: data,
+        }));
+      }
+    } catch (error) {
+      console.error("Error loading conversation:", error);
+    }
+  };
+
+  const sendMessage = async (resumeId: string, message: string) => {
+    if (!message.trim()) return;
+
+    setSendingMessage(resumeId);
+    try {
+      const conversation = conversations[resumeId];
+      if (!conversation) return;
+
+      const response = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversation_id: conversation.conversation.id,
+          message: message.trim(),
+          message_type: "text",
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setConversations((prev) => ({
+          ...prev,
+          [resumeId]: {
+            ...prev[resumeId],
+            messages: [...prev[resumeId].messages, data.message],
+          },
+        }));
+        setNewMessages((prev) => ({
+          ...prev,
+          [resumeId]: "",
+        }));
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setSendingMessage(null);
+    }
+  };
+
+  const sendQuickReply = async (resumeId: string, message: string) => {
+    await sendMessage(resumeId, message);
+  };
 
   if (loading) {
     return (
@@ -171,21 +280,9 @@ export default function CreatorDashboard() {
                         : "bg-blue-50 border border-blue-200 shadow-sm"
                     }`}
                     style={{ cursor: "pointer" }}
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       e.preventDefault();
-                      console.log("Clicked resume:", resume.id);
-                      console.log("Router object:", router);
-                      try {
-                        console.log(
-                          "Attempting navigation to:",
-                          `/creator/review/${resume.id}`
-                        );
-                        // Try using window.location instead of router.push
-                        window.location.href = `/creator/review/${resume.id}`;
-                        console.log("Navigation completed successfully");
-                      } catch (error) {
-                        console.error("Navigation error:", error);
-                      }
+                      toggleCardExpansion(resume.id);
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -234,7 +331,13 @@ export default function CreatorDashboard() {
                         <p className="text-sm text-zinc-600">
                           {isViewed
                             ? isCompleted
-                              ? `Reviewed • Score: ${resume.score || "N/A"}/10`
+                              ? resume.review_status
+                                ? `${resume.review_status} • Score: ${
+                                    resume.score || "N/A"
+                                  }/10`
+                                : `Reviewed • Score: ${
+                                    resume.score || "N/A"
+                                  }/10`
                               : "Resume viewed"
                             : "New resume shared"}
                         </p>
@@ -244,6 +347,54 @@ export default function CreatorDashboard() {
                       <div className="text-xs text-zinc-500">
                         {new Date(resume.created_at).toLocaleDateString()}
                       </div>
+                    </div>
+
+                    {/* Expandable Conversation */}
+                    {/* Action Buttons */}
+                    <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
+                      {/* Conversation Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openConversationModal(resume.id);
+                        }}
+                        className="w-full px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <span className="text-sm font-medium">
+                          {conversations[resume.id]?.messages?.length > 0
+                            ? `View Conversation (${
+                                conversations[resume.id].messages.length
+                              } messages)`
+                            : "Start Conversation"}
+                        </span>
+                      </button>
+
+                      {/* Review Resume Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `/creator/review/${resume.id}`;
+                        }}
+                        className="w-full px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <span className="text-sm font-medium">
+                          Review Resume
+                        </span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -298,6 +449,186 @@ export default function CreatorDashboard() {
           )}
         </main>
       </div>
+
+      {/* Conversation Modal */}
+      {showConversationModal && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          onClick={closeConversationModal}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-zinc-200">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-zinc-800">
+                  Conversation
+                </h3>
+                {conversations[showConversationModal]?.messages?.length > 0 && (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                    {conversations[showConversationModal].messages.length}{" "}
+                    messages
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={closeConversationModal}
+                className="p-2 hover:bg-zinc-100 rounded-lg transition-colors group"
+              >
+                <svg
+                  className="w-5 h-5 text-zinc-500 group-hover:text-zinc-700 transition-colors"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {conversations[showConversationModal]?.messages?.map(
+                (message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${
+                      message.sender_id === showConversationModal
+                        ? "justify-start"
+                        : "justify-end"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-xs px-4 py-3 rounded-lg ${
+                        message.sender_id === showConversationModal
+                          ? "bg-zinc-100 text-zinc-800"
+                          : "bg-blue-500 text-white"
+                      }`}
+                    >
+                      <p className="text-sm">{message.message}</p>
+                      <p
+                        className={`text-xs mt-1 ${
+                          message.sender_id === showConversationModal
+                            ? "text-zinc-500"
+                            : "text-blue-100"
+                        }`}
+                      >
+                        {new Date(message.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )
+              )}
+              {(!conversations[showConversationModal]?.messages ||
+                conversations[showConversationModal].messages.length === 0) && (
+                <div className="text-center py-8">
+                  <p className="text-zinc-500 italic">
+                    No messages yet. Start a conversation!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Reply Options */}
+            <div className="p-6 border-t border-zinc-200">
+              <p className="text-sm text-zinc-600 mb-3">Quick replies:</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                  "Thanks for sharing your resume!",
+                  "I'll review this and get back to you.",
+                  "Could you provide more details about...",
+                  "Great work! Here's my feedback:",
+                ].map((reply) => (
+                  <button
+                    key={reply}
+                    onClick={() => sendQuickReply(showConversationModal, reply)}
+                    disabled={sendingMessage === showConversationModal}
+                    className="px-3 py-2 text-sm bg-white border border-zinc-200 rounded-full hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                  >
+                    {reply}
+                  </button>
+                ))}
+              </div>
+
+              {/* Message Input */}
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={newMessages[showConversationModal] || ""}
+                  onChange={(e) =>
+                    setNewMessages((prev) => ({
+                      ...prev,
+                      [showConversationModal]: e.target.value,
+                    }))
+                  }
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-3 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage(
+                        showConversationModal,
+                        newMessages[showConversationModal] || ""
+                      );
+                    }
+                  }}
+                />
+                <button
+                  onClick={() =>
+                    sendMessage(
+                      showConversationModal,
+                      newMessages[showConversationModal] || ""
+                    )
+                  }
+                  disabled={
+                    !(newMessages[showConversationModal] || "").trim() ||
+                    sendingMessage === showConversationModal
+                  }
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {sendingMessage === showConversationModal ? "..." : "Send"}
+                </button>
+              </div>
+
+              {/* Review Resume Button */}
+              <div className="mt-4 pt-4 border-t border-zinc-200">
+                <button
+                  onClick={() => {
+                    window.location.href = `/creator/review/${showConversationModal}`;
+                  }}
+                  className="w-full px-4 py-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <span className="font-medium">Review Resume</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

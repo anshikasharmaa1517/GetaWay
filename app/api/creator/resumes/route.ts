@@ -38,6 +38,7 @@ export async function GET() {
         id,
         file_url,
         status,
+        review_status,
         score,
         notes,
         created_at,

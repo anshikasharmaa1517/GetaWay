@@ -9,6 +9,7 @@ interface SharedResume {
   id: string;
   file_url: string;
   status: string;
+  review_status: string | null;
   score: number | null;
   notes: string | null;
   created_at: string;
@@ -21,17 +22,119 @@ interface SharedResume {
   } | null;
 }
 
+interface Message {
+  id: string;
+  sender_id: string;
+  message: string;
+  message_type: string;
+  created_at: string;
+}
+
+interface Conversation {
+  id: string;
+  resume_id: string;
+  user_id: string;
+  reviewer_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function DashboardPage() {
   const [sharedResumes, setSharedResumes] = useState<SharedResume[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<
+    Record<string, { conversation: Conversation; messages: Message[] }>
+  >({});
+  const [newMessages, setNewMessages] = useState<Record<string, string>>({});
+  const [sendingMessage, setSendingMessage] = useState<string | null>(null);
+  const [showConversationModal, setShowConversationModal] = useState<
+    string | null
+  >(null);
   const router = useRouter();
 
   const toggleCardExpansion = (cardId: string) => {
-    setExpandedCard(expandedCard === cardId ? null : cardId);
+    const newExpanded = expandedCard === cardId ? null : cardId;
+    setExpandedCard(newExpanded);
+
+    // Load conversation when expanding
+    if (newExpanded && !conversations[cardId]) {
+      loadConversation(cardId);
+    }
   };
 
   const isCardExpanded = (cardId: string) => expandedCard === cardId;
+
+  const openConversationModal = (resumeId: string) => {
+    setShowConversationModal(resumeId);
+    // Load conversation when opening modal
+    if (!conversations[resumeId]) {
+      loadConversation(resumeId);
+    }
+  };
+
+  const closeConversationModal = () => {
+    setShowConversationModal(null);
+  };
+
+  const loadConversation = async (resumeId: string) => {
+    try {
+      const response = await fetch(`/api/conversations?resume_id=${resumeId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setConversations((prev) => ({
+          ...prev,
+          [resumeId]: data,
+        }));
+      }
+    } catch (error) {
+      console.error("Error loading conversation:", error);
+    }
+  };
+
+  const sendMessage = async (resumeId: string, message: string) => {
+    if (!message.trim()) return;
+
+    setSendingMessage(resumeId);
+    try {
+      const conversation = conversations[resumeId];
+      if (!conversation) return;
+
+      const response = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversation_id: conversation.conversation.id,
+          message: message.trim(),
+          message_type: "text",
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setConversations((prev) => ({
+          ...prev,
+          [resumeId]: {
+            ...prev[resumeId],
+            messages: [...prev[resumeId].messages, data.message],
+          },
+        }));
+        setNewMessages((prev) => ({
+          ...prev,
+          [resumeId]: "",
+        }));
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setSendingMessage(null);
+    }
+  };
+
+  const sendQuickReply = async (resumeId: string, message: string) => {
+    await sendMessage(resumeId, message);
+  };
 
   useEffect(() => {
     async function loadSharedResumes() {
@@ -46,6 +149,8 @@ export default function DashboardPage() {
           return;
         }
 
+        setProfile(user);
+
         // Get resumes that have been shared with reviewers
         const { data: resumes, error } = await supabase
           .from("resumes")
@@ -54,6 +159,7 @@ export default function DashboardPage() {
             id,
             file_url,
             status,
+            review_status,
             score,
             notes,
             created_at,
@@ -229,11 +335,17 @@ export default function DashboardPage() {
                             resume.status === "Pending"
                               ? "bg-amber-50 text-amber-700 border border-amber-200"
                               : resume.status === "Completed"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              ? resume.review_status === "Approved"
+                                ? "bg-green-50 text-green-700 border border-green-200"
+                                : resume.review_status === "Needs Revision"
+                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : "bg-slate-50 text-slate-700 border border-slate-200"
                           }`}
                         >
-                          {resume.status}
+                          {resume.status === "Completed" && resume.review_status
+                            ? resume.review_status
+                            : resume.status}
                         </div>
 
                         {/* Date at extreme right */}
@@ -291,6 +403,26 @@ export default function DashboardPage() {
                             </div>
                           )}
                         </div>
+
+                        {/* Conversation Button */}
+                        <div className="mt-4 pt-4 border-t border-slate-100">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openConversationModal(resume.id);
+                            }}
+                            className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          >
+                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                            <span className="text-sm font-medium">
+                              {conversations[resume.id]?.messages?.length > 0
+                                ? `View Conversation (${
+                                    conversations[resume.id].messages.length
+                                  } messages)`
+                                : "Start Conversation"}
+                            </span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -345,6 +477,161 @@ export default function DashboardPage() {
           )}
         </div>
       </main>
+
+      {/* Conversation Modal */}
+      {showConversationModal && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          onClick={closeConversationModal}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Conversation
+                </h3>
+                {conversations[showConversationModal]?.messages?.length > 0 && (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                    {conversations[showConversationModal].messages.length}{" "}
+                    messages
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={closeConversationModal}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors group"
+              >
+                <svg
+                  className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {conversations[showConversationModal]?.messages?.map(
+                (message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${
+                      message.sender_id === profile?.id
+                        ? "justify-end"
+                        : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-xs px-4 py-3 rounded-lg ${
+                        message.sender_id === profile?.id
+                          ? "bg-blue-500 text-white"
+                          : "bg-slate-100 text-slate-800"
+                      }`}
+                    >
+                      <p className="text-sm">{message.message}</p>
+                      <p
+                        className={`text-xs mt-1 ${
+                          message.sender_id === profile?.id
+                            ? "text-blue-100"
+                            : "text-slate-500"
+                        }`}
+                      >
+                        {new Date(message.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )
+              )}
+              {(!conversations[showConversationModal]?.messages ||
+                conversations[showConversationModal].messages.length === 0) && (
+                <div className="text-center py-8">
+                  <p className="text-slate-500 italic">
+                    No messages yet. Start a conversation!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Reply Options */}
+            <div className="p-6 border-t border-slate-200">
+              <p className="text-sm text-slate-600 mb-3">Quick replies:</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                  "Thank you for the feedback!",
+                  "I'll work on the improvements.",
+                  "Could you clarify this point?",
+                  "When can I expect an update?",
+                ].map((reply) => (
+                  <button
+                    key={reply}
+                    onClick={() => sendQuickReply(showConversationModal, reply)}
+                    disabled={sendingMessage === showConversationModal}
+                    className="px-3 py-2 text-sm bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors disabled:opacity-50"
+                  >
+                    {reply}
+                  </button>
+                ))}
+              </div>
+
+              {/* Message Input */}
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={newMessages[showConversationModal] || ""}
+                  onChange={(e) =>
+                    setNewMessages((prev) => ({
+                      ...prev,
+                      [showConversationModal]: e.target.value,
+                    }))
+                  }
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage(
+                        showConversationModal,
+                        newMessages[showConversationModal] || ""
+                      );
+                    }
+                  }}
+                />
+                <button
+                  onClick={() =>
+                    sendMessage(
+                      showConversationModal,
+                      newMessages[showConversationModal] || ""
+                    )
+                  }
+                  disabled={
+                    !(newMessages[showConversationModal] || "").trim() ||
+                    sendingMessage === showConversationModal
+                  }
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {sendingMessage === showConversationModal ? "..." : "Send"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

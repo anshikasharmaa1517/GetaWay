@@ -7,6 +7,7 @@ create table if not exists public.resumes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   status text not null default 'Pending',
+  review_status text check (review_status in ('Approved', 'Needs Revision')),
   score int,
   notes text,
   file_url text not null,
@@ -174,6 +175,27 @@ end $$;
 -- Enable RLS for reviews
 alter table public.reviews enable row level security;
 
+-- Conversations table for user-reviewer communication
+create table if not exists public.conversations (
+  id uuid primary key default gen_random_uuid(),
+  resume_id uuid not null references public.resumes(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  reviewer_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(resume_id)
+);
+
+-- Messages table for conversation threads
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  message text not null,
+  message_type text not null default 'text' check (message_type in ('text', 'quick_reply')),
+  created_at timestamptz not null default now()
+);
+
 -- Reviews RLS policies
 do $$
 begin
@@ -296,6 +318,55 @@ begin
         reviewer_slug is not null and 
         reviewer_slug in (
           select slug from public.reviewers where user_id = auth.uid()
+        )
+      );
+  end if;
+end $$;
+
+-- Enable RLS for conversations and messages
+alter table public.conversations enable row level security;
+alter table public.messages enable row level security;
+
+-- Conversations RLS policies
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='conversations' and policyname='Users can view their conversations'
+  ) then
+    create policy "Users can view their conversations" on public.conversations
+      for select using (auth.uid() = user_id or auth.uid() = reviewer_id);
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='conversations' and policyname='Users can create conversations'
+  ) then
+    create policy "Users can create conversations" on public.conversations
+      for insert with check (auth.uid() = user_id);
+  end if;
+end $$;
+
+-- Messages RLS policies
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='messages' and policyname='Users can view messages in their conversations'
+  ) then
+    create policy "Users can view messages in their conversations" on public.messages
+      for select using (
+        conversation_id in (
+          select id from public.conversations 
+          where user_id = auth.uid() or reviewer_id = auth.uid()
+        )
+      );
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='messages' and policyname='Users can send messages'
+  ) then
+    create policy "Users can send messages" on public.messages
+      for insert with check (
+        auth.uid() = sender_id and
+        conversation_id in (
+          select id from public.conversations 
+          where user_id = auth.uid() or reviewer_id = auth.uid()
         )
       );
   end if;
