@@ -1,8 +1,16 @@
 import { getServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function LeaderboardPage() {
-  const supabase = getServerSupabaseClient();
-  const { data } = await supabase.from("leaderboard").select("user_id, best_score").order("best_score", { ascending: false }).limit(50);
+  let data = null;
+  
+  try {
+    const supabase = await getServerSupabaseClient();
+    const result = await supabase.from("leaderboard").select("user_id, best_score").order("best_score", { ascending: false }).limit(50);
+    data = result.data;
+  } catch (error) {
+    console.error("Error fetching leaderboard:", error);
+    data = [];
+  }
 
   return (
     <div className="mx-auto max-w-3xl py-10 px-4 space-y-6">
