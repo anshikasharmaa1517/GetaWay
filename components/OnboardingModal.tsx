@@ -196,7 +196,7 @@ export function OnboardingModal() {
     }
     setSaving(false);
     setOpen(false);
-    router.push("/reviewer");
+    // Don't redirect - just close the modal and stay on current page
   }
 
   // Ensure the backdrop appears immediately on first paint to avoid exposing
