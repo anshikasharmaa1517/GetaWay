@@ -83,19 +83,26 @@ async function determineUserRole(
     return "admin";
   }
 
-  // Get user profile to check role
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", userId)
-    .single();
+  // Try to get user profile role first (if column exists)
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
 
-  console.log(`Session: Profile role for user ${userId}:`, profile?.role);
+    console.log(`Session: Profile role for user ${userId}:`, profile?.role);
 
-  // If profile exists and has a role, use it
-  if (profile?.role && ["user", "reviewer", "admin"].includes(profile.role)) {
-    console.log(`Session: Using profile role: ${profile.role}`);
-    return profile.role as UserRole;
+    // If profile exists and has a role, use it
+    if (profile?.role && ["user", "reviewer", "admin"].includes(profile.role)) {
+      console.log(`Session: Using profile role: ${profile.role}`);
+      return profile.role as UserRole;
+    }
+  } catch (error) {
+    console.log(
+      `Session: Profile role column may not exist, using fallback:`,
+      error
+    );
   }
 
   // Fallback: Check if user has a reviewer profile (for backward compatibility)

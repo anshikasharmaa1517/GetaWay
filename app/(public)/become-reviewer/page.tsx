@@ -166,34 +166,30 @@ export default function BecomeReviewerPage() {
       } = await supabase.auth.getUser();
       console.log("Current user after refresh:", { user, userError });
 
-      // Also check the profile role directly with retry logic
+      // Check if reviewer profile exists (fallback approach since profiles.role column may not exist)
       if (user) {
-        let profile = null;
-        let profileError = null;
+        console.log("Checking if reviewer profile exists...");
 
-        // Retry up to 3 times to get the profile
-        for (let i = 0; i < 3; i++) {
-          const result = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .maybeSingle();
+        const { data: reviewerProfile, error: reviewerError } = await supabase
+          .from("reviewers")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-          profile = result.data;
-          profileError = result.error;
+        console.log("Reviewer profile check:", {
+          reviewerProfile,
+          reviewerError,
+        });
 
-          if (profile && !profileError) {
-            console.log(`Profile role found on attempt ${i + 1}:`, profile);
-            break;
-          }
-
-          if (i < 2) {
-            console.log(`Profile not found on attempt ${i + 1}, retrying...`);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-          }
+        if (reviewerProfile) {
+          console.log(
+            "✅ Reviewer profile exists - user should have reviewer access"
+          );
+        } else {
+          console.log(
+            "❌ No reviewer profile found - this might cause access issues"
+          );
         }
-
-        console.log("Final profile role check:", { profile, profileError });
       }
 
       // Redirect directly to the reviewer dashboard since the role has been updated

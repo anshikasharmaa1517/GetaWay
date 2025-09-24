@@ -79,29 +79,32 @@ export default function CreatorDashboard() {
           console.log("Redirected from reviewer setup - verifying role...");
           setShowSuccessMessage(true);
 
-          // Verify the user has reviewer role
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
+          // Verify the user has reviewer role (check reviewers table since profiles.role may not exist)
+          const { data: reviewerProfile } = await supabase
+            .from("reviewers")
+            .select("id")
+            .eq("user_id", user.id)
             .maybeSingle();
 
-          console.log("Profile role verification:", profile);
+          console.log("Reviewer profile verification:", reviewerProfile);
 
-          if (!profile || profile.role !== "reviewer") {
-            console.log("Role verification failed, refreshing session...");
+          if (!reviewerProfile) {
+            console.log("Reviewer profile not found, refreshing session...");
             await supabase.auth.refreshSession();
 
             // Wait a bit and try again
             await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            const { data: retryProfile } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", user.id)
+            const { data: retryReviewerProfile } = await supabase
+              .from("reviewers")
+              .select("id")
+              .eq("user_id", user.id)
               .maybeSingle();
 
-            console.log("Retry profile role verification:", retryProfile);
+            console.log(
+              "Retry reviewer profile verification:",
+              retryReviewerProfile
+            );
           }
 
           // Clean up the URL parameter
