@@ -119,37 +119,9 @@ begin
   end if;
 end $$;
 
--- Function to automatically set user role based on reviewer profile
-create or replace function public.set_user_role()
-returns trigger as $$
-begin
-  -- If a reviewer profile is created, update the user's role to 'reviewer'
-  if TG_OP = 'INSERT' then
-    update public.profiles 
-    set role = 'reviewer', updated_at = now()
-    where id = new.user_id and role = 'user';
-  end if;
-  
-  -- If a reviewer profile is deleted, check if user should be demoted to 'user'
-  if TG_OP = 'DELETE' then
-    -- Only demote if they don't have admin role
-    update public.profiles 
-    set role = 'user', updated_at = now()
-    where id = old.user_id and role = 'reviewer';
-  end if;
-  
-  return coalesce(new, old);
-end;
-$$ language plpgsql;
-
--- Trigger to automatically update user role when reviewer profile changes
-do $$ begin
-  if not exists (select 1 from pg_trigger where tgname = 'set_user_role_trigger' and tgrelid = 'public.reviewers'::regclass) then
-    create trigger set_user_role_trigger
-      after insert or delete on public.reviewers
-      for each row execute function public.set_user_role();
-  end if;
-end $$;
+-- Note: User roles are determined dynamically in the application
+-- based on whether a user has a reviewer profile or not.
+-- No need for a role column in profiles table or triggers.
 
 -- Reviews table for storing reviewer feedback
 create table if not exists public.reviews (

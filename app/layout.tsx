@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Resume Reviewer",
+  title: "PaperWeight",
   description: "Upload your resume and track review status",
 };
 

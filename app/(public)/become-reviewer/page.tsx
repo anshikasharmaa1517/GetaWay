@@ -118,7 +118,7 @@ export default function BecomeReviewerPage() {
     <div className="min-h-screen bg-zinc-50">
       <header className="mx-auto max-w-4xl px-6 py-6 flex items-center justify-between">
         <div className="text-base md:text-lg font-semibold tracking-tight">
-          GetAWay
+          PaperWeight
         </div>
         <a
           href="/login"

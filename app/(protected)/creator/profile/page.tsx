@@ -275,7 +275,7 @@ export default function EditProfilePage() {
     <div className="min-h-screen bg-gray-50">
       <header className="h-16 border-b border-gray-200 bg-white/80 backdrop-blur-sm flex items-center justify-between px-6">
         <div className="text-lg font-semibold tracking-tight text-gray-900">
-          GetAWay Creator
+          PaperWeight Creator
         </div>
         <div className="flex items-center gap-4">
           <a

@@ -65,6 +65,7 @@ export const ROUTE_ACCESS: RouteAccess[] = [
   { path: '/creator', roles: ['reviewer', 'admin'], requiresAuth: true, description: 'Reviewer dashboard' },
   { path: '/creator/profile', roles: ['reviewer', 'admin'], requiresAuth: true, description: 'Edit reviewer profile' },
   { path: '/creator/reviews', roles: ['reviewer', 'admin'], requiresAuth: true, description: 'Manage reviews' },
+  { path: '/creator/review/[id]', roles: ['reviewer', 'admin'], requiresAuth: true, description: 'Review specific resume' },
   { path: '/creator/analytics', roles: ['reviewer', 'admin'], requiresAuth: true, description: 'Reviewer analytics' },
   
   // Admin routes

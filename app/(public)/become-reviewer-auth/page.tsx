@@ -68,7 +68,7 @@ export default function BecomeReviewerAuthPage() {
     <div className="min-h-screen bg-gradient-to-b from-zinc-200 to-zinc-50">
       <header className="mx-auto max-w-4xl px-6 py-6 flex items-center justify-between">
         <div className="text-[15px] md:text-[17px] font-semibold tracking-tight text-zinc-900">
-          GetAWay
+          PaperWeight
         </div>
         <a
           href="/login"

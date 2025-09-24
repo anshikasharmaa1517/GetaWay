@@ -71,23 +71,23 @@ export default function LoginPage() {
         // Determine user role and redirect accordingly
         try {
           const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', (await supabase.auth.getUser()).data.user?.id)
+            .from("profiles")
+            .select("role")
+            .eq("id", (await supabase.auth.getUser()).data.user?.id)
             .single();
-          
-          const role = profile?.role || 'user';
-          let redirectPath = '/dashboard';
-          
-          if (role === 'admin') {
-            redirectPath = '/admin';
-          } else if (role === 'reviewer') {
-            redirectPath = '/creator';
+
+          const role = profile?.role || "user";
+          let redirectPath = "/dashboard";
+
+          if (role === "admin") {
+            redirectPath = "/admin";
+          } else if (role === "reviewer") {
+            redirectPath = "/creator";
           }
-          
+
           router.replace(redirectPath);
         } catch {
-          router.replace('/dashboard');
+          router.replace("/dashboard");
         }
       }
     }
@@ -111,15 +111,18 @@ export default function LoginPage() {
       </div>
       <div className="hidden md:block relative bg-[#FAD7A1]">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-80 h-80 rounded-full bg-white/40" />
+          <div className="w-80 h-80 rounded-full bg-white/40 flex items-center justify-center">
+            <img
+              src="/logo.png"
+              alt="PaperWeight Logo"
+              className="w-75 h-75 object-contain mix-blend-multiply"
+            />
+          </div>
         </div>
       </div>
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="mb-10">
-            <div className="text-sm tracking-wide text-zinc-500 mb-2">
-              GetAWay
-            </div>
             <h1 className="text-5xl font-serif leading-tight text-zinc-900">
               Better resume,
               <span className="whitespace-nowrap"> better&#8209;hiring.</span>
