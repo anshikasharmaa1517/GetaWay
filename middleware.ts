@@ -198,6 +198,7 @@ export async function middleware(request: NextRequest) {
       "/become-reviewer-auth",
       "/leaderboard",
       "/auth/callback",
+      "/debug", // Temporary debug page
     ];
 
     // Check if it's a public reviewer profile (e.g., /r/username)

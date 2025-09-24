@@ -9,8 +9,11 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await getServerSupabaseClient();
-    const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code);
-    
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.exchangeCodeForSession(code);
+
     if (error || !user) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
@@ -18,21 +21,21 @@ export async function GET(request: Request) {
     // Determine user role and redirect accordingly
     try {
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
         .single();
-      
-      const role = profile?.role || 'user';
+
+      const role = profile?.role || "user";
       const redirectPath = next || getDefaultRedirectPath(role as any);
-      
+
       return NextResponse.redirect(new URL(redirectPath, request.url));
     } catch {
       // Fallback to requested path or dashboard
-      const fallbackPath = next || '/dashboard';
+      const fallbackPath = next || "/dashboard";
       return NextResponse.redirect(new URL(fallbackPath, request.url));
     }
   }
-  
+
   return NextResponse.redirect(new URL("/login", request.url));
 }
