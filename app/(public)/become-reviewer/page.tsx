@@ -150,8 +150,8 @@ export default function BecomeReviewerPage() {
 
       console.log("Success! Redirecting to creator dashboard");
 
-      // Small delay to ensure the role update is propagated (important for Vercel/serverless)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Longer delay to ensure the role update is fully propagated in Vercel/serverless
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Refresh the session to ensure we have the latest role
       console.log("Refreshing session...");
@@ -166,26 +166,46 @@ export default function BecomeReviewerPage() {
       } = await supabase.auth.getUser();
       console.log("Current user after refresh:", { user, userError });
 
-      // Also check the profile role directly
+      // Also check the profile role directly with retry logic
       if (user) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-        console.log("Profile role after refresh:", { profile, profileError });
+        let profile = null;
+        let profileError = null;
+
+        // Retry up to 3 times to get the profile
+        for (let i = 0; i < 3; i++) {
+          const result = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          profile = result.data;
+          profileError = result.error;
+
+          if (profile && !profileError) {
+            console.log(`Profile role found on attempt ${i + 1}:`, profile);
+            break;
+          }
+
+          if (i < 2) {
+            console.log(`Profile not found on attempt ${i + 1}, retrying...`);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+        }
+
+        console.log("Final profile role check:", { profile, profileError });
       }
 
       // Redirect directly to the reviewer dashboard since the role has been updated
       console.log("Redirecting to /creator...");
 
       // Use a more robust redirect approach for Vercel
-      // First try router.push, fallback to window.location
+      // Redirect to a success page that will handle the role verification
       try {
-        router.push("/creator");
+        router.push("/creator?reviewer_setup=success");
       } catch (error) {
         console.log("Router push failed, using window.location:", error);
-        window.location.href = "/creator";
+        window.location.href = "/creator?reviewer_setup=success";
       }
     } finally {
       setSaving(false);

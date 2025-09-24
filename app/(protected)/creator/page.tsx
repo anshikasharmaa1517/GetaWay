@@ -54,6 +54,7 @@ export default function CreatorDashboard() {
   const [currentReviewerId, setCurrentReviewerId] = useState<string | null>(
     null
   );
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -71,6 +72,45 @@ export default function CreatorDashboard() {
 
         console.log("Current user ID:", user.id);
         setCurrentReviewerId(user.id);
+
+        // Check if this is a redirect from reviewer setup
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("reviewer_setup") === "success") {
+          console.log("Redirected from reviewer setup - verifying role...");
+          setShowSuccessMessage(true);
+
+          // Verify the user has reviewer role
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          console.log("Profile role verification:", profile);
+
+          if (!profile || profile.role !== "reviewer") {
+            console.log("Role verification failed, refreshing session...");
+            await supabase.auth.refreshSession();
+
+            // Wait a bit and try again
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            const { data: retryProfile } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", user.id)
+              .maybeSingle();
+
+            console.log("Retry profile role verification:", retryProfile);
+          }
+
+          // Clean up the URL parameter
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          );
+        }
 
         // Use API route to get resumes with user details
         const response = await fetch("/api/creator/resumes");
@@ -260,6 +300,54 @@ export default function CreatorDashboard() {
         </aside>
 
         <main className="col-span-12 md:col-span-9">
+          {showSuccessMessage && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-5 h-5 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-green-800">
+                    Reviewer Profile Created Successfully!
+                  </h3>
+                  <p className="text-sm text-green-700">
+                    You can now receive and review resumes from users.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowSuccessMessage(false)}
+                  className="ml-auto p-1 hover:bg-green-100 rounded-full"
+                >
+                  <svg
+                    className="w-4 h-4 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="mb-6">
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-2">
               Resume Received
