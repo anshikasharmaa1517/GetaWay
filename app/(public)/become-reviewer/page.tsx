@@ -154,10 +154,39 @@ export default function BecomeReviewerPage() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Refresh the session to ensure we have the latest role
-      await supabase.auth.refreshSession();
+      console.log("Refreshing session...");
+      const { data: refreshData, error: refreshError } =
+        await supabase.auth.refreshSession();
+      console.log("Session refresh result:", { refreshData, refreshError });
+
+      // Check current user after refresh
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      console.log("Current user after refresh:", { user, userError });
+
+      // Also check the profile role directly
+      if (user) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        console.log("Profile role after refresh:", { profile, profileError });
+      }
 
       // Redirect directly to the reviewer dashboard since the role has been updated
-      window.location.href = "/creator";
+      console.log("Redirecting to /creator...");
+
+      // Use a more robust redirect approach for Vercel
+      // First try router.push, fallback to window.location
+      try {
+        router.push("/creator");
+      } catch (error) {
+        console.log("Router push failed, using window.location:", error);
+        window.location.href = "/creator";
+      }
     } finally {
       setSaving(false);
     }

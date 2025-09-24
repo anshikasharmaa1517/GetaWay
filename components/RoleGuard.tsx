@@ -123,7 +123,22 @@ async function determineUserRole(
     return "admin";
   }
 
-  // Check if user has a reviewer profile
+  // Get user profile to check role (same logic as session.ts)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  console.log(`RoleGuard: Profile role for user ${userId}:`, profile?.role);
+
+  // If profile exists and has a role, use it
+  if (profile?.role && ["user", "reviewer", "admin"].includes(profile.role)) {
+    console.log(`RoleGuard: Using profile role: ${profile.role}`);
+    return profile.role as UserRole;
+  }
+
+  // Fallback: Check if user has a reviewer profile (for backward compatibility)
   const { data: reviewerProfile } = await supabase
     .from("reviewers")
     .select("id")
