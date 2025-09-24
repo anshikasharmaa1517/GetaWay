@@ -161,7 +161,7 @@ async function handleApiRoutes(
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   console.log(`Middleware: Processing request for ${pathname}`);
 
   // Skip middleware for static files only

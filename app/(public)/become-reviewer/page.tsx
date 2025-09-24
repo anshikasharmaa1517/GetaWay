@@ -153,8 +153,12 @@ export default function BecomeReviewerPage() {
       // Redirect immediately - the API has already verified the role update
       console.log("Redirecting to /creator immediately");
 
-      // Force a complete page reload to clear any cached session data
-      window.location.href = "/creator?refresh=" + Date.now();
+      // Force logout and redirect to login with next parameter
+      const supabase = getBrowserSupabaseClient();
+      await supabase.auth.signOut();
+
+      // Redirect to login with next parameter to go to creator after login
+      window.location.href = "/login?next=%2Fcreator";
     } finally {
       setSaving(false);
     }
