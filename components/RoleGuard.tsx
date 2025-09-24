@@ -188,15 +188,30 @@ export function useSession() {
         }
 
         // Get user profile with role
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
+        // If no profile exists, create a default one for new users
         if (!profile) {
-          setSession(null);
-          return;
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              role: 'user',
+              onboarded: false,
+            })
+            .select('*')
+            .single();
+
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            setSession(null);
+            return;
+          }
+          profile = newProfile;
         }
 
         // Determine user role

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabaseClient } from "@/lib/supabase";
 import { AppBar } from "@/components/ui/AppBar";
+import { OnboardingModal } from "@/components/OnboardingModal";
 
 type Reviewer = {
   id: string;
@@ -177,6 +178,7 @@ export default function ReviewersPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AppBar />
+      <OnboardingModal />
       <main className="mx-auto max-w-6xl px-6 py-12">
         {/* Hero Section */}
         <div className="mb-12">

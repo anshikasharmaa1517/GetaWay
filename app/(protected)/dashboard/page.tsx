@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabaseClient } from "@/lib/supabase";
 import { AppBar } from "@/components/ui/AppBar";
+import { OnboardingModal } from "@/components/OnboardingModal";
 
 interface SharedResume {
   id: string;
@@ -449,6 +450,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <AppBar />
+      <OnboardingModal />
       <main className="mx-auto max-w-4xl px-6 py-8">
         {/* Header */}
         <div className="mb-8">
