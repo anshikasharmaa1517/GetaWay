@@ -452,6 +452,40 @@ begin
   end if;
 end $$;
 
+-- Storage policies for resumes bucket
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='Users can upload their own resumes'
+  ) then
+    create policy "Users can upload their own resumes" on storage.objects
+      for insert with check (
+        bucket_id = 'resumes' and
+        auth.role() = 'authenticated' and
+        (storage.foldername(name))[1] = auth.uid()::text
+      );
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='Users can view their own resumes'
+  ) then
+    create policy "Users can view their own resumes" on storage.objects
+      for select using (
+        bucket_id = 'resumes' and
+        auth.role() = 'authenticated' and
+        (storage.foldername(name))[1] = auth.uid()::text
+      );
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='Reviewers can view resumes shared with them'
+  ) then
+    create policy "Reviewers can view resumes shared with them" on storage.objects
+      for select using (
+        bucket_id = 'resumes' and
+        auth.role() = 'authenticated'
+      );
+  end if;
+end $$;
+
 -- Create experiences table
 CREATE TABLE IF NOT EXISTS public.experiences (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,

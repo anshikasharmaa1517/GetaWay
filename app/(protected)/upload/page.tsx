@@ -18,17 +18,25 @@ function UploadContent() {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [reviewer, setReviewer] = useState<{ name: string; slug: string } | null>(null);
+  const [reviewer, setReviewer] = useState<{
+    name: string;
+    slug: string;
+  } | null>(null);
   const toReviewer = searchParams.get("to");
 
   useEffect(() => {
     async function fetchReviewer() {
       if (toReviewer) {
         try {
-          const res = await fetch(`/api/reviewers?slug=${encodeURIComponent(toReviewer)}`);
+          const res = await fetch(
+            `/api/reviewers?slug=${encodeURIComponent(toReviewer)}`
+          );
           if (res.ok) {
             const { reviewer: reviewerData } = await res.json();
-            setReviewer({ name: reviewerData.display_name || reviewerData.slug, slug: reviewerData.slug });
+            setReviewer({
+              name: reviewerData.display_name || reviewerData.slug,
+              slug: reviewerData.slug,
+            });
           }
         } catch (error) {
           console.error("Error fetching reviewer:", error);
@@ -40,11 +48,14 @@ function UploadContent() {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const f = acceptedFiles[0];
+    console.log("File dropped:", f?.name, f?.type, f?.size);
     if (f && f.type === "application/pdf") {
       setFile(f);
       setError(null);
+      console.log("File set successfully");
     } else {
       setError("Please upload a PDF file.");
+      console.log("Invalid file type:", f?.type);
     }
   }, []);
 
@@ -54,16 +65,21 @@ function UploadContent() {
     accept: { "application/pdf": [".pdf"] },
   });
 
-  const fileUrl = useMemo(
-    () => (file ? URL.createObjectURL(file) : null),
-    [file]
-  );
+  const fileUrl = useMemo(() => {
+    if (file) {
+      const url = URL.createObjectURL(file);
+      console.log("Generated file URL:", url);
+      return url;
+    }
+    console.log("No file, fileUrl is null");
+    return null;
+  }, [file]);
 
   async function onUpload() {
     if (!file) return;
     setIsUploading(true);
     setError(null);
-    
+
     try {
       const supabase = getBrowserSupabaseClient();
       const { data: userData } = await supabase.auth.getUser();
@@ -71,42 +87,41 @@ function UploadContent() {
         router.push("/login");
         return;
       }
-      
+
       const userId = userData.user.id;
       const path = `${userId}/${Date.now()}-${file.name}`;
-      
+
       const { error: uploadError, data } = await supabase.storage
         .from("resumes")
         .upload(path, file, { contentType: file.type });
-        
+
       if (uploadError) {
         setError(uploadError.message);
         return;
       }
-      
+
       const { data: urlData } = supabase.storage
         .from("resumes")
         .getPublicUrl(data.path);
-        
+
       const response = await fetch("/api/resumes/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          file_url: urlData.publicUrl, 
+        body: JSON.stringify({
+          file_url: urlData.publicUrl,
           status: "Pending",
-          reviewer_slug: toReviewer 
+          reviewer_slug: toReviewer,
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         setError(errorData.error || "Failed to create resume record");
         return;
       }
-      
+
       // Success - redirect to dashboard
       router.push("/dashboard");
-      
     } catch (error) {
       console.error("Upload error:", error);
       setError("An unexpected error occurred. Please try again.");
@@ -128,7 +143,10 @@ function UploadContent() {
             <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <p className="text-gray-700">
-                Sharing with <span className="font-semibold text-gray-900">{reviewer.name}</span>
+                Sharing with{" "}
+                <span className="font-semibold text-gray-900">
+                  {reviewer.name}
+                </span>
               </p>
             </div>
           )}
@@ -139,27 +157,43 @@ function UploadContent() {
           <div
             {...getRootProps()}
             className={`border-2 border-dashed rounded-2xl p-12 text-center transition-colors duration-200 cursor-pointer ${
-              isDragActive 
-                ? "bg-blue-50 border-blue-300" 
+              isDragActive
+                ? "bg-blue-50 border-blue-300"
                 : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
             }`}
           >
             <input {...getInputProps()} />
             <div className="flex flex-col items-center gap-4">
               <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                <svg
+                  className="w-8 h-8 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
                 </svg>
               </div>
               {isDragActive ? (
                 <div>
-                  <p className="text-lg font-medium text-gray-900">Drop the PDF here</p>
+                  <p className="text-lg font-medium text-gray-900">
+                    Drop the PDF here
+                  </p>
                   <p className="text-sm text-gray-600">Release to upload</p>
                 </div>
               ) : (
                 <div>
-                  <p className="text-lg font-medium text-gray-900">Upload your resume</p>
-                  <p className="text-sm text-gray-600">Drag and drop your PDF here, or click to browse</p>
+                  <p className="text-lg font-medium text-gray-900">
+                    Upload your resume
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Drag and drop your PDF here, or click to browse
+                  </p>
                 </div>
               )}
             </div>
@@ -168,7 +202,9 @@ function UploadContent() {
           {/* File Preview */}
           {fileUrl && (
             <div className="mt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Preview</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Preview
+              </h3>
               <PdfPreview fileUrl={fileUrl} />
             </div>
           )}
@@ -177,8 +213,18 @@ function UploadContent() {
           {error && (
             <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
               <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-5 h-5 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 <p className="text-sm text-red-700">{error}</p>
               </div>
@@ -194,16 +240,41 @@ function UploadContent() {
             >
               {isUploading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Uploading...
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
                   </svg>
                   Upload Resume
                 </>
@@ -218,19 +289,21 @@ function UploadContent() {
 
 export default function UploadPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50">
-        <AppBar />
-        <main className="mx-auto max-w-4xl px-4 py-8">
-          <div className="text-center">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50">
+          <AppBar />
+          <main className="mx-auto max-w-4xl px-4 py-8">
+            <div className="text-center">
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+              </div>
             </div>
-          </div>
-        </main>
-      </div>
-    }>
+          </main>
+        </div>
+      }
+    >
       <UploadContent />
     </Suspense>
   );

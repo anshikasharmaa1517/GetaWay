@@ -10,16 +10,30 @@ pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 export function PdfPreview({ fileUrl }: { fileUrl: string }) {
   const [numPages, setNumPages] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="rounded border p-4">
       <h2 className="font-medium mb-2">Preview</h2>
-      <Document
-        file={fileUrl}
-        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-      >
-        <Page pageNumber={1} width={600} />
-      </Document>
+      {error ? (
+        <div className="text-red-600 text-sm p-4 bg-red-50 rounded">
+          Failed to load PDF: {error}
+        </div>
+      ) : (
+        <Document
+          file={fileUrl}
+          onLoadSuccess={({ numPages }) => {
+            setNumPages(numPages);
+            setError(null);
+          }}
+          onLoadError={(error) => {
+            console.error("PDF load error:", error);
+            setError(error.message || "Unknown error");
+          }}
+        >
+          <Page pageNumber={1} width={600} />
+        </Document>
+      )}
       <p className="text-sm text-gray-600 mt-2">Pages: {numPages}</p>
     </div>
   );
