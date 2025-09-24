@@ -33,7 +33,7 @@ export class SecurityUtils {
     if (!input) return "";
     
     return input
-      .replace(/[';--]/g, "") // Remove SQL injection characters
+      .replace(/[';-]|--/g, "") // Remove SQL injection characters
       .replace(/(\b(ALTER|CREATE|DELETE|DROP|EXEC|INSERT|SELECT|UNION|UPDATE)\b)/gi, "") // Remove SQL keywords
       .trim();
   }
