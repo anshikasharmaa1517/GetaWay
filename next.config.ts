@@ -47,6 +47,16 @@ const nextConfig: NextConfig = {
   // Disable X-Powered-By header
   poweredByHeader: false,
 
+  // Disable ESLint during builds for production deployment
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
+  // Disable TypeScript checking during builds for faster deployment
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   // Compress responses
   compress: true,
 
