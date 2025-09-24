@@ -150,15 +150,14 @@ export default function BecomeReviewerPage() {
 
       console.log("Success! Redirecting to creator dashboard");
 
-      // Redirect immediately - the API has already verified the role update
-      console.log("Redirecting to /creator immediately");
+      // Small delay to ensure the role update is propagated (important for Vercel/serverless)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Force logout and redirect to login with next parameter
-      const supabase = getBrowserSupabaseClient();
-      await supabase.auth.signOut();
+      // Refresh the session to ensure we have the latest role
+      await supabase.auth.refreshSession();
 
-      // Redirect to login with next parameter to go to creator after login
-      window.location.href = "/login?next=%2Fcreator";
+      // Redirect directly to the reviewer dashboard since the role has been updated
+      window.location.href = "/creator";
     } finally {
       setSaving(false);
     }
