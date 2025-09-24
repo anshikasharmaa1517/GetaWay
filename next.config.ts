@@ -4,10 +4,7 @@ import { getSecurityHeaders } from "./lib/env-config";
 const nextConfig: NextConfig = {
   transpilePackages: ["react-pdf", "pdfjs-dist"],
   experimental: {
-    turbopack: {
-      // Hint turbopack about correct root if needed in monorepos
-      // root: __dirname,
-    },
+    // Removed turbopack config for production compatibility
   },
 
   // Security headers
@@ -53,8 +50,7 @@ const nextConfig: NextConfig = {
   // Compress responses
   compress: true,
 
-  // Enable SWC minification
-  swcMinify: true,
+  // SWC minification is enabled by default in Next.js 15
 
   // Image optimization security
   images: {

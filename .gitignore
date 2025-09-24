@@ -25,11 +25,32 @@ build/
 # TypeScript
 *.tsbuildinfo
 
-# Env files
+# Environment files (CRITICAL - NEVER COMMIT THESE)
 .env
 .env.*
 !.env.example
 .env.local
+.env.production
+.env.development
+.env.test
+
+# Supabase secrets
+supabase/config.toml
+supabase/.env
+supabase/seed.sql
+supabase/migrations/*.sql
+
+# Database & Security
+*.db
+*.sqlite
+*.sqlite3
+database.json
+secrets.json
+private-key.pem
+*.key
+*.pem
+*.p12
+*.crt
 
 # Supabase local temp
 supabase/.temp/
@@ -37,3 +58,42 @@ supabase/.temp/
 # Editor swaps
 *.swp
 *.swo
+
+# Temporary & Development files
+cleanup-duplicates.sql
+PRODUCTION-SECURITY-CHECKLIST.md
+*.backup
+*.tmp
+temp/
+tmp/
+
+# IDE & Editor files
+.vscode/settings.json
+.idea/
+*.sublime-*
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+.coverage
+*.lcov
+
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Yarn Integrity file
+.yarn-integrity
