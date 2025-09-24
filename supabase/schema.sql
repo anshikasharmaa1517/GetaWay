@@ -175,6 +175,93 @@ end $$;
 -- Enable RLS for reviews
 alter table public.reviews enable row level security;
 
+-- Reviewer ratings table for users to rate reviewers
+create table if not exists public.reviewer_ratings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  reviewer_id uuid not null references public.reviewers(id) on delete cascade,
+  resume_id uuid not null references public.resumes(id) on delete cascade,
+  rating int not null check (rating >= 1 and rating <= 5),
+  comment text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(user_id, reviewer_id, resume_id)
+);
+
+-- Add updated_at trigger for reviewer_ratings
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'set_updated_at_reviewer_ratings' and tgrelid = 'public.reviewer_ratings'::regclass) then
+    create trigger set_updated_at_reviewer_ratings
+      before update on public.reviewer_ratings
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
+
+-- Enable RLS for reviewer_ratings
+alter table public.reviewer_ratings enable row level security;
+
+-- Users can manage their own ratings
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='reviewer_ratings' and policyname='Users can manage their own ratings'
+  ) then
+    create policy "Users can manage their own ratings" on public.reviewer_ratings
+      for all using (auth.uid() = user_id);
+  end if;
+end $$;
+
+-- Reviewers can view ratings they received
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='reviewer_ratings' and policyname='Reviewers can view their ratings'
+  ) then
+    create policy "Reviewers can view their ratings" on public.reviewer_ratings
+      for select using (
+        reviewer_id in (
+          select id from public.reviewers where user_id = auth.uid()
+        )
+      );
+  end if;
+end $$;
+
+-- Function to update reviewer's average rating
+create or replace function public.update_reviewer_rating()
+returns trigger as $$
+begin
+  -- Calculate new average rating for the reviewer
+  update public.reviewers
+  set 
+    rating = (
+      select round(avg(rating)::numeric, 2)
+      from public.reviewer_ratings
+      where reviewer_id = coalesce(new.reviewer_id, old.reviewer_id)
+    ),
+    reviews = (
+      select count(*)
+      from public.reviewer_ratings
+      where reviewer_id = coalesce(new.reviewer_id, old.reviewer_id)
+    ),
+    updated_at = now()
+  where id = coalesce(new.reviewer_id, old.reviewer_id);
+  
+  return coalesce(new, old);
+end;
+$$ language plpgsql;
+
+-- Trigger to update reviewer rating when ratings change
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'update_reviewer_rating_trigger' and tgrelid = 'public.reviewer_ratings'::regclass) then
+    create trigger update_reviewer_rating_trigger
+      after insert or update or delete on public.reviewer_ratings
+      for each row execute function public.update_reviewer_rating();
+  end if;
+end $$;
+
+-- Create indexes for reviewer_ratings
+create index if not exists idx_reviewer_ratings_user_id on public.reviewer_ratings(user_id);
+create index if not exists idx_reviewer_ratings_reviewer_id on public.reviewer_ratings(reviewer_id);
+create index if not exists idx_reviewer_ratings_resume_id on public.reviewer_ratings(resume_id);
+
 -- Conversations table for user-reviewer communication
 create table if not exists public.conversations (
   id uuid primary key default gen_random_uuid(),
@@ -392,4 +479,62 @@ begin
       for select using (bucket_id = 'avatars');
   end if;
 end $$;
+
+-- Create experiences table
+CREATE TABLE IF NOT EXISTS public.experiences (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  reviewer_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  company text NOT NULL,
+  employment_type text NOT NULL, -- 'Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'
+  location text,
+  location_type text, -- 'On-site', 'Remote', 'Hybrid'
+  start_date date NOT NULL,
+  end_date date,
+  currently_working boolean DEFAULT false,
+  description text,
+  skills text[], -- Array of skills
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create RLS policies for experiences
+ALTER TABLE public.experiences ENABLE ROW LEVEL SECURITY;
+
+-- Reviewers can manage their own experiences
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='experiences' and policyname='Reviewers can manage their own experiences'
+  ) then
+    create policy "Reviewers can manage their own experiences" on public.experiences
+      for all using (auth.uid() = reviewer_id);
+  end if;
+end $$;
+
+-- Anyone can view experiences (for public profiles)
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='experiences' and policyname='Anyone can view experiences'
+  ) then
+    create policy "Anyone can view experiences" on public.experiences
+      for select using (true);
+  end if;
+end $$;
+
+-- Create trigger for updated_at
+do $$ begin
+  if not exists (
+    select 1 from pg_trigger where tgname = 'set_updated_at_experiences'
+  ) then
+    create trigger set_updated_at_experiences
+      before update on public.experiences
+      for each row
+      execute function public.set_updated_at();
+  end if;
+end $$;
+
+-- Create indexes for experiences
+CREATE INDEX IF NOT EXISTS idx_experiences_reviewer_id ON public.experiences(reviewer_id);
+CREATE INDEX IF NOT EXISTS idx_experiences_company ON public.experiences(company);
+CREATE INDEX IF NOT EXISTS idx_experiences_start_date ON public.experiences(start_date DESC);
 

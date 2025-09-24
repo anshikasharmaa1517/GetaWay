@@ -21,17 +21,65 @@ export async function POST(request: Request) {
     if (!file_url) return NextResponse.json({ error: "file_url is required" }, { status: 400 });
 
     const admin = getAdminSupabaseClient();
-    const { error } = await admin.from("resumes").insert({
-      user_id: user.id,
-      status,
-      notes,
-      score,
-      file_url,
-      reviewer_slug,
-    });
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    
+    // Check if there's already a resume shared with this reviewer
+    const { data: existingResumes, error: checkError } = await admin
+      .from("resumes")
+      .select("id, status")
+      .eq("user_id", user.id)
+      .eq("reviewer_slug", reviewer_slug)
+      .order("created_at", { ascending: false });
 
-    return NextResponse.json({ ok: true });
+    if (checkError) {
+      return NextResponse.json({ error: checkError.message }, { status: 400 });
+    }
+
+    // Get the most recent resume if multiple exist
+    const existingResume = existingResumes && existingResumes.length > 0 ? existingResumes[0] : null;
+
+    if (existingResume) {
+      // Update existing resume with new file
+      const { error: updateError } = await admin
+        .from("resumes")
+        .update({
+          file_url,
+          status: "Pending", // Reset status when new resume is shared
+          notes: null, // Clear previous notes
+          score: null, // Clear previous score
+          review_status: null, // Clear previous review status
+        })
+        .eq("id", existingResume.id);
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 400 });
+      }
+
+      return NextResponse.json({ 
+        ok: true, 
+        action: "updated",
+        message: "Resume updated in existing conversation"
+      });
+    } else {
+      // Create new resume entry for first-time interaction
+      const { error } = await admin.from("resumes").insert({
+        user_id: user.id,
+        status,
+        notes,
+        score,
+        file_url,
+        reviewer_slug,
+      });
+      
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+
+      return NextResponse.json({ 
+        ok: true, 
+        action: "created",
+        message: "New conversation started"
+      });
+    }
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? "Unknown error" }, { status: 500 });
   }

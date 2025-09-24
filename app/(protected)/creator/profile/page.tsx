@@ -8,10 +8,26 @@ type Reviewer = {
   display_name: string | null;
   slug: string | null;
   country: string | null;
+  company: string | null;
+  experience_years: number | null;
   expertise: string[];
   headline: string | null;
   social_link: string | null;
   photo_url: string | null;
+};
+
+type Experience = {
+  id: string;
+  title: string;
+  company: string;
+  employment_type: string;
+  location?: string;
+  location_type?: string;
+  start_date: string;
+  end_date?: string;
+  currently_working: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export default function EditProfilePage() {
@@ -21,6 +37,21 @@ export default function EditProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [showExperienceForm, setShowExperienceForm] = useState(false);
+  const [editingExperience, setEditingExperience] = useState<Experience | null>(
+    null
+  );
+  const [experienceForm, setExperienceForm] = useState({
+    title: "",
+    company: "",
+    employment_type: "",
+    location: "",
+    location_type: "",
+    start_date: "",
+    end_date: "",
+    currently_working: false,
+  });
   const HEADLINE_WORD_LIMIT = 50;
 
   useEffect(() => {
@@ -40,12 +71,22 @@ export default function EditProfilePage() {
           display_name: "",
           slug: "",
           country: "India",
+          company: "",
+          experience_years: null,
           expertise: [],
           headline: "",
           social_link: "",
           photo_url: null,
         }
       );
+
+      // Load experiences
+      const expRes = await fetch("/api/experiences", { cache: "no-store" });
+      if (expRes.ok) {
+        const expJson = await expRes.json();
+        setExperiences(expJson.experiences || []);
+      }
+
       setLoading(false);
     })();
   }, []);
@@ -65,6 +106,7 @@ export default function EditProfilePage() {
           slug: data.slug,
           country: data.country,
           company: data.company,
+          experience_years: data.experience_years,
           expertise: data.expertise,
           headline: data.headline,
           social_link: data.social_link,
@@ -123,6 +165,105 @@ export default function EditProfilePage() {
       setUploading(false);
     }
   }
+
+  const resetExperienceForm = () => {
+    setExperienceForm({
+      title: "",
+      company: "",
+      employment_type: "",
+      location: "",
+      location_type: "",
+      start_date: "",
+      end_date: "",
+      currently_working: false,
+    });
+    setEditingExperience(null);
+    setShowExperienceForm(false);
+  };
+
+  const handleAddExperience = () => {
+    resetExperienceForm();
+    setShowExperienceForm(true);
+  };
+
+  const handleEditExperience = (experience: Experience) => {
+    setExperienceForm({
+      title: experience.title,
+      company: experience.company,
+      employment_type: experience.employment_type,
+      location: experience.location || "",
+      location_type: experience.location_type || "",
+      start_date: experience.start_date,
+      end_date: experience.end_date || "",
+      currently_working: experience.currently_working,
+    });
+    setEditingExperience(experience);
+    setShowExperienceForm(true);
+  };
+
+  const handleSaveExperience = async () => {
+    try {
+      setSaving(true);
+      const url = editingExperience
+        ? `/api/experiences/${editingExperience.id}`
+        : "/api/experiences";
+      const method = editingExperience ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(experienceForm),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to save experience");
+        return;
+      }
+
+      const { experience } = await response.json();
+
+      if (editingExperience) {
+        setExperiences((prev) =>
+          prev.map((exp) =>
+            exp.id === editingExperience.id ? experience : exp
+          )
+        );
+      } else {
+        setExperiences((prev) => [experience, ...prev]);
+      }
+
+      resetExperienceForm();
+      setSuccess("Experience saved successfully!");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError("Failed to save experience. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteExperience = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this experience?")) return;
+
+    try {
+      const response = await fetch(`/api/experiences/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to delete experience");
+        return;
+      }
+
+      setExperiences((prev) => prev.filter((exp) => exp.id !== id));
+      setSuccess("Experience deleted successfully!");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError("Failed to delete experience. Please try again.");
+    }
+  };
 
   if (loading) {
     return <div className="p-6">Loading…</div>;
@@ -427,6 +568,32 @@ export default function EditProfilePage() {
                   />
                 </div>
 
+                {/* Years of Experience */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-3">
+                    Years of Experience
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={data.experience_years ?? ""}
+                    onChange={(e) =>
+                      setData({
+                        ...data,
+                        experience_years: e.target.value
+                          ? parseInt(e.target.value)
+                          : null,
+                      })
+                    }
+                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+                    placeholder="e.g., 5"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Total years of professional experience
+                  </p>
+                </div>
+
                 {/* Headline */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-3">
@@ -465,6 +632,140 @@ export default function EditProfilePage() {
                     className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
                     placeholder="https://www.linkedin.com/in/your-profile"
                   />
+                </div>
+
+                {/* Experience Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-semibold text-gray-900">
+                      Experience
+                    </label>
+                    <button
+                      onClick={handleAddExperience}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors duration-200"
+                    >
+                      <svg
+                        className="w-4 h-4 mr-1"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      Add Experience
+                    </button>
+                  </div>
+
+                  {/* Experience List */}
+                  <div className="space-y-4">
+                    {experiences.map((exp) => (
+                      <div
+                        key={exp.id}
+                        className="border border-gray-200 rounded-2xl p-4"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900">
+                              {exp.title}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              {exp.company}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(exp.start_date).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "long",
+                                  year: "numeric",
+                                }
+                              )}{" "}
+                              -{" "}
+                              {exp.currently_working
+                                ? "Present"
+                                : exp.end_date
+                                ? new Date(exp.end_date).toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      month: "long",
+                                      year: "numeric",
+                                    }
+                                  )
+                                : "Present"}
+                            </p>
+                            {exp.location && (
+                              <p className="text-xs text-gray-500">
+                                {exp.location}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <button
+                              onClick={() => handleEditExperience(exp)}
+                              className="p-1 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExperience(exp.id)}
+                              className="p-1 text-gray-400 hover:text-red-600 transition-colors duration-200"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {experiences.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <svg
+                          className="w-12 h-12 mx-auto mb-4 text-gray-300"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"
+                          />
+                        </svg>
+                        <p className="text-sm">No experience added yet</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Add your work experience to showcase your expertise
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -521,6 +822,230 @@ export default function EditProfilePage() {
           </div>
         </main>
       </div>
+
+      {/* Experience Form Modal */}
+      {showExperienceForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {editingExperience ? "Edit Experience" : "Add Experience"}
+                </h2>
+                <button
+                  onClick={resetExperienceForm}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={experienceForm.title}
+                  onChange={(e) =>
+                    setExperienceForm({
+                      ...experienceForm,
+                      title: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Software Engineer"
+                />
+              </div>
+
+              {/* Company */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company *
+                </label>
+                <input
+                  type="text"
+                  value={experienceForm.company}
+                  onChange={(e) =>
+                    setExperienceForm({
+                      ...experienceForm,
+                      company: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Google"
+                />
+              </div>
+
+              {/* Employment Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Employment Type *
+                </label>
+                <select
+                  value={experienceForm.employment_type}
+                  onChange={(e) =>
+                    setExperienceForm({
+                      ...experienceForm,
+                      employment_type: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Please select</option>
+                  <option value="Full-time">Full-time</option>
+                  <option value="Part-time">Part-time</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Internship">Internship</option>
+                  <option value="Freelance">Freelance</option>
+                </select>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={experienceForm.location}
+                  onChange={(e) =>
+                    setExperienceForm({
+                      ...experienceForm,
+                      location: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., San Francisco, CA"
+                />
+              </div>
+
+              {/* Location Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location Type
+                </label>
+                <select
+                  value={experienceForm.location_type}
+                  onChange={(e) =>
+                    setExperienceForm({
+                      ...experienceForm,
+                      location_type: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Please select</option>
+                  <option value="On-site">On-site</option>
+                  <option value="Remote">Remote</option>
+                  <option value="Hybrid">Hybrid</option>
+                </select>
+              </div>
+
+              {/* Start Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Date *
+                </label>
+                <input
+                  type="date"
+                  value={experienceForm.start_date}
+                  onChange={(e) =>
+                    setExperienceForm({
+                      ...experienceForm,
+                      start_date: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Currently Working */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="currently_working"
+                  checked={experienceForm.currently_working}
+                  onChange={(e) =>
+                    setExperienceForm({
+                      ...experienceForm,
+                      currently_working: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label
+                  htmlFor="currently_working"
+                  className="ml-2 text-sm text-gray-700"
+                >
+                  I am currently working in this role
+                </label>
+              </div>
+
+              {/* End Date */}
+              {!experienceForm.currently_working && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={experienceForm.end_date}
+                    onChange={(e) =>
+                      setExperienceForm({
+                        ...experienceForm,
+                        end_date: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={resetExperienceForm}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveExperience}
+                disabled={
+                  saving ||
+                  !experienceForm.title ||
+                  !experienceForm.company ||
+                  !experienceForm.employment_type ||
+                  !experienceForm.start_date
+                }
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                {saving
+                  ? "Saving..."
+                  : editingExperience
+                  ? "Update Experience"
+                  : "Add Experience"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
