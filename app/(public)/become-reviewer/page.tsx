@@ -150,7 +150,8 @@ export default function BecomeReviewerPage() {
 
             <div>
               <label className="text-sm font-medium">
-                Connect your social account
+                Connect your social account{" "}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 value={social}
@@ -161,7 +162,9 @@ export default function BecomeReviewerPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium">Your page link</label>
+              <label className="text-sm font-medium">
+                Your page link <span className="text-red-500">*</span>
+              </label>
               <div className="mt-2 flex items-center gap-2">
                 <span className="rounded-xl border border-zinc-300 px-3 py-2 text-sm text-zinc-600 bg-zinc-50">
                   getaway.io/
@@ -219,7 +222,7 @@ export default function BecomeReviewerPage() {
 
             <div>
               <label className="text-sm font-medium">
-                Select your expertise
+                Select your expertise <span className="text-red-500">*</span>
               </label>
               <div className="mt-3 flex flex-wrap gap-2">
                 {EXPERTISE.map((tag) => (
