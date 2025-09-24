@@ -78,11 +78,11 @@ export function AppBar() {
             <img
               src="/logo.png"
               alt="PaperWeight Logo"
-              className="w-8 h-8 object-contain mix-blend-multiply"
+              className="w-11 h-11 object-contain mix-blend-multiply"
             />
-            <span className="text-sm font-medium tracking-tight">
-              PaperWeight
-            </span>
+            {/* <span className="text-sm font-medium tracking-tight">
+              PaperWeighte
+            </span> */}
           </Link>
           <div className="animate-pulse bg-gray-200 h-8 w-8 rounded-full"></div>
         </div>
@@ -97,7 +97,7 @@ export function AppBar() {
           <img
             src="/logo.png"
             alt="PaperWeight Logo"
-            className="w-10 h-10 object-contain mix-blend-multiply"
+            className="w-11 h-11 object-contain mix-blend-multiply"
           />
         </Link>
         <nav className="flex items-center gap-2">
