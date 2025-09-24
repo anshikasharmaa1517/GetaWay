@@ -97,7 +97,7 @@ export function AppBar() {
           <img
             src="/logo.png"
             alt="PaperWeight Logo"
-            className="w-8 h-8 object-contain mix-blend-multiply"
+            className="w-10 h-10 object-contain mix-blend-multiply"
           />
         </Link>
         <nav className="flex items-center gap-2">
