@@ -332,20 +332,16 @@ export default function DashboardPage() {
                         {/* Status */}
                         <div
                           className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                            resume.status === "Pending"
+                            resume.review_status === "Approved"
+                              ? "bg-green-50 text-green-700 border border-green-200"
+                              : resume.review_status === "Needs Revision"
                               ? "bg-amber-50 text-amber-700 border border-amber-200"
-                              : resume.status === "Completed"
-                              ? resume.review_status === "Approved"
-                                ? "bg-green-50 text-green-700 border border-green-200"
-                                : resume.review_status === "Needs Revision"
-                                ? "bg-amber-50 text-amber-700 border border-amber-200"
-                                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : resume.status === "Pending"
+                              ? "bg-amber-50 text-amber-700 border border-amber-200"
                               : "bg-slate-50 text-slate-700 border border-slate-200"
                           }`}
                         >
-                          {resume.status === "Completed" && resume.review_status
-                            ? resume.review_status
-                            : resume.status}
+                          {resume.review_status || resume.status}
                         </div>
 
                         {/* Date at extreme right */}
@@ -416,10 +412,10 @@ export default function DashboardPage() {
                             <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                             <span className="text-sm font-medium">
                               {conversations[resume.id]?.messages?.length > 0
-                                ? `View Conversation (${
+                                ? `View Messages (${
                                     conversations[resume.id].messages.length
-                                  } messages)`
-                                : "Start Conversation"}
+                                  })`
+                                : "Open Chat"}
                             </span>
                           </button>
                         </div>
@@ -493,7 +489,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                 <h3 className="text-lg font-semibold text-slate-800">
-                  Conversation
+                  Messages
                 </h3>
                 {conversations[showConversationModal]?.messages?.length > 0 && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
@@ -562,7 +558,7 @@ export default function DashboardPage() {
                 conversations[showConversationModal].messages.length === 0) && (
                 <div className="text-center py-8">
                   <p className="text-slate-500 italic">
-                    No messages yet. Start a conversation!
+                    No messages yet. Send a message to get started!
                   </p>
                 </div>
               )}

@@ -51,6 +51,9 @@ export default function CreatorDashboard() {
   const [showConversationModal, setShowConversationModal] = useState<
     string | null
   >(null);
+  const [currentReviewerId, setCurrentReviewerId] = useState<string | null>(
+    null
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -67,6 +70,7 @@ export default function CreatorDashboard() {
         }
 
         console.log("Current user ID:", user.id);
+        setCurrentReviewerId(user.id);
 
         // Use API route to get resumes with user details
         const response = await fetch("/api/creator/resumes");
@@ -282,7 +286,7 @@ export default function CreatorDashboard() {
                     style={{ cursor: "pointer" }}
                     onClick={(e) => {
                       e.preventDefault();
-                      toggleCardExpansion(resume.id);
+                      window.location.href = `/creator/review/${resume.id}`;
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -347,54 +351,6 @@ export default function CreatorDashboard() {
                       <div className="text-xs text-zinc-500">
                         {new Date(resume.created_at).toLocaleDateString()}
                       </div>
-                    </div>
-
-                    {/* Expandable Conversation */}
-                    {/* Action Buttons */}
-                    <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
-                      {/* Conversation Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openConversationModal(resume.id);
-                        }}
-                        className="w-full px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
-                      >
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                        <span className="text-sm font-medium">
-                          {conversations[resume.id]?.messages?.length > 0
-                            ? `View Conversation (${
-                                conversations[resume.id].messages.length
-                              } messages)`
-                            : "Start Conversation"}
-                        </span>
-                      </button>
-
-                      {/* Review Resume Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.location.href = `/creator/review/${resume.id}`;
-                        }}
-                        className="w-full px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <span className="text-sm font-medium">
-                          Review Resume
-                        </span>
-                      </button>
                     </div>
                   </div>
                 );
@@ -465,7 +421,7 @@ export default function CreatorDashboard() {
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                 <h3 className="text-lg font-semibold text-zinc-800">
-                  Conversation
+                  Messages
                 </h3>
                 {conversations[showConversationModal]?.messages?.length > 0 && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
@@ -501,24 +457,24 @@ export default function CreatorDashboard() {
                   <div
                     key={message.id}
                     className={`flex ${
-                      message.sender_id === showConversationModal
-                        ? "justify-start"
-                        : "justify-end"
+                      message.sender_id === currentReviewerId
+                        ? "justify-end"
+                        : "justify-start"
                     }`}
                   >
                     <div
                       className={`max-w-xs px-4 py-3 rounded-lg ${
-                        message.sender_id === showConversationModal
-                          ? "bg-zinc-100 text-zinc-800"
-                          : "bg-blue-500 text-white"
+                        message.sender_id === currentReviewerId
+                          ? "bg-blue-500 text-white"
+                          : "bg-zinc-100 text-zinc-800"
                       }`}
                     >
                       <p className="text-sm">{message.message}</p>
                       <p
                         className={`text-xs mt-1 ${
-                          message.sender_id === showConversationModal
-                            ? "text-zinc-500"
-                            : "text-blue-100"
+                          message.sender_id === currentReviewerId
+                            ? "text-blue-100"
+                            : "text-zinc-500"
                         }`}
                       >
                         {new Date(message.created_at).toLocaleTimeString([], {
@@ -534,7 +490,7 @@ export default function CreatorDashboard() {
                 conversations[showConversationModal].messages.length === 0) && (
                 <div className="text-center py-8">
                   <p className="text-zinc-500 italic">
-                    No messages yet. Start a conversation!
+                    No messages yet. Send a message to get started!
                   </p>
                 </div>
               )}
@@ -607,7 +563,7 @@ export default function CreatorDashboard() {
                   onClick={() => {
                     window.location.href = `/creator/review/${showConversationModal}`;
                   }}
-                  className="w-full px-4 py-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 bg-white border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 text-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   <svg
                     className="w-4 h-4"

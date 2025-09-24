@@ -22,7 +22,7 @@ export async function POST(
     const body = await request.json();
     const { score, feedback, status, review_status } = body;
 
-    if (!score || !feedback || !status || !review_status) {
+    if (!score || !status || !review_status) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -51,7 +51,7 @@ export async function POST(
       .from("resumes")
       .update({
         score: parseInt(score),
-        notes: feedback,
+        notes: feedback || null,
         status: status,
         review_status: review_status,
       })
@@ -67,7 +67,7 @@ export async function POST(
         reviewer_id: reviewerProfile.user_id,
         resume_id: resolvedParams.id,
         score: parseInt(score),
-        feedback: feedback,
+        feedback: feedback || null,
       },
       {
         onConflict: "reviewer_id,resume_id",
