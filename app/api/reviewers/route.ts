@@ -354,6 +354,8 @@ export async function POST(req: NextRequest) {
 
     // If reviewer creation was successful, update user's role to 'reviewer'
     if (!error && data) {
+      console.log("Reviewer created successfully, updating user role to 'reviewer' for user:", user.id);
+      
       const { error: roleError } = await supabase
         .from("profiles")
         .update({ role: "reviewer" })
@@ -362,6 +364,8 @@ export async function POST(req: NextRequest) {
       if (roleError) {
         console.error("Error updating user role:", roleError);
         // Don't fail the entire request, but log the error
+      } else {
+        console.log("User role successfully updated to 'reviewer'");
       }
     }
   }

@@ -149,7 +149,12 @@ export default function BecomeReviewerPage() {
       }
 
       console.log("Success! Redirecting to creator dashboard");
-      window.location.href = "/creator";
+
+      // Add a small delay to ensure the role update has time to complete
+      setTimeout(() => {
+        console.log("Redirecting to /creator after role update delay");
+        window.location.href = "/creator";
+      }, 1000);
     } finally {
       setSaving(false);
     }

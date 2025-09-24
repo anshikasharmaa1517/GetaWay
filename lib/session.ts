@@ -73,7 +73,19 @@ async function determineUserRole(userId: string, supabase: any): Promise<UserRol
     return 'admin';
   }
 
-  // Check if user has a reviewer profile
+  // Get user profile to check role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single();
+
+  // If profile exists and has a role, use it
+  if (profile?.role && ['user', 'reviewer', 'admin'].includes(profile.role)) {
+    return profile.role as UserRole;
+  }
+
+  // Fallback: Check if user has a reviewer profile (for backward compatibility)
   const { data: reviewerProfile } = await supabase
     .from('reviewers')
     .select('id')
