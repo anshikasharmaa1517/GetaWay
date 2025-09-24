@@ -359,7 +359,14 @@ export async function POST(req: NextRequest) {
         user.id
       );
 
-      const { error: roleError } = await supabase
+      // Use admin client to update the role to bypass RLS
+      const { createClient } = await import("@supabase/supabase-js");
+      const adminSupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const { error: roleError } = await adminSupabase
         .from("profiles")
         .update({ role: "reviewer" })
         .eq("id", user.id);
@@ -377,7 +384,7 @@ export async function POST(req: NextRequest) {
         console.log("User role successfully updated to 'reviewer'");
 
         // Verify the role was actually updated
-        const { data: updatedProfile } = await supabase
+        const { data: updatedProfile } = await adminSupabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
