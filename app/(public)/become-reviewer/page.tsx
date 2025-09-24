@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { getBrowserSupabaseClient } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 const COUNTRIES = [
   "India",
@@ -30,6 +31,7 @@ const EXPERTISE = [
 ];
 
 export default function BecomeReviewerPage() {
+  const router = useRouter();
   const [social, setSocial] = useState("");
   const [slug, setSlug] = useState("");
   const [country, setCountry] = useState("India");
@@ -38,6 +40,7 @@ export default function BecomeReviewerPage() {
   const [saving, setSaving] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [linkedinPhotoUrl, setLinkedinPhotoUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const canNext = useMemo(
     () =>
       social.trim().length > 0 &&
@@ -45,6 +48,31 @@ export default function BecomeReviewerPage() {
       expertise.length > 0,
     [social, slug, expertise]
   );
+
+  // Check authentication on page load
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const supabase = getBrowserSupabaseClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          // User not authenticated, redirect to auth page
+          router.push("/become-reviewer-auth");
+          return;
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error("Auth check error:", error);
+        router.push("/become-reviewer-auth");
+      }
+    }
+
+    checkAuth();
+  }, [router]);
 
   function toggle(tag: string) {
     setExpertise((prev) =>
@@ -113,6 +141,17 @@ export default function BecomeReviewerPage() {
   }
 
   // No authentication from social URL; we simply store it when saving
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-zinc-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50">
