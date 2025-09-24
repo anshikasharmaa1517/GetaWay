@@ -23,6 +23,27 @@ BEGIN
     END IF;
 END $$;
 
+-- Create profiles for users who don't have them yet
+INSERT INTO public.profiles (id, role, onboarded)
+SELECT 
+    u.id,
+    CASE 
+        WHEN r.user_id IS NOT NULL THEN 'reviewer'
+        ELSE 'user'
+    END as role,
+    CASE 
+        WHEN r.user_id IS NOT NULL THEN true
+        ELSE false
+    END as onboarded
+FROM auth.users u
+LEFT JOIN public.reviewers r ON u.id = r.user_id
+WHERE u.id NOT IN (SELECT id FROM public.profiles)
+ON CONFLICT (id) DO UPDATE SET
+    role = CASE 
+        WHEN EXISTS (SELECT 1 FROM public.reviewers WHERE user_id = public.profiles.id) THEN 'reviewer'
+        ELSE public.profiles.role
+    END;
+
 -- Update existing profiles to have the correct role based on whether they have a reviewer profile
 UPDATE public.profiles 
 SET role = 'reviewer' 

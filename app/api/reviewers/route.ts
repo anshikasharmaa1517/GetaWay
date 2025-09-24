@@ -366,43 +366,47 @@ export async function POST(req: NextRequest) {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
 
-      const { error: roleError } = await adminSupabase
+      // First, ensure the profile exists by upserting it
+      const { error: upsertError } = await adminSupabase
         .from("profiles")
-        .update({ role: "reviewer" })
-        .eq("id", user.id);
+        .upsert({
+          id: user.id,
+          role: "reviewer",
+          onboarded: true,
+        });
 
-      if (roleError) {
-        console.error("Error updating user role:", roleError);
+      if (upsertError) {
+        console.error("Error upserting user profile:", upsertError);
         return new Response(
-          JSON.stringify({ error: "Failed to update user role" }),
+          JSON.stringify({ error: "Failed to create/update user profile" }),
           {
             status: 500,
             headers: { "content-type": "application/json" },
           }
         );
-      } else {
-        console.log("User role successfully updated to 'reviewer'");
-
-        // Verify the role was actually updated
-        const { data: updatedProfile } = await adminSupabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        if (updatedProfile?.role !== "reviewer") {
-          console.error("Role update verification failed:", updatedProfile);
-          return new Response(
-            JSON.stringify({ error: "Role update verification failed" }),
-            {
-              status: 500,
-              headers: { "content-type": "application/json" },
-            }
-          );
-        }
-
-        console.log("Role update verified successfully:", updatedProfile.role);
       }
+
+      console.log("User profile upserted successfully with reviewer role");
+
+      // Verify the profile was created/updated correctly
+      const { data: updatedProfile } = await adminSupabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (updatedProfile?.role !== "reviewer") {
+        console.error("Profile verification failed:", updatedProfile);
+        return new Response(
+          JSON.stringify({ error: "Profile verification failed" }),
+          {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          }
+        );
+      }
+
+      console.log("Profile verified successfully:", updatedProfile.role);
     }
   }
 
