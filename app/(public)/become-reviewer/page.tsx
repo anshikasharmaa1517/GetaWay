@@ -152,7 +152,9 @@ export default function BecomeReviewerPage() {
 
       // Redirect immediately - the API has already verified the role update
       console.log("Redirecting to /creator immediately");
-      window.location.replace("/creator");
+
+      // Force a complete page reload to clear any cached session data
+      window.location.href = "/creator?refresh=" + Date.now();
     } finally {
       setSaving(false);
     }
