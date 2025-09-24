@@ -206,7 +206,7 @@ export default function DashboardPage() {
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="px-8 py-6 border-b border-gray-100">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Your submissions
+                  Your resumes
                 </h2>
               </div>
               <div className="divide-y divide-gray-100">
@@ -218,13 +218,28 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
-                          <StatusChip status={r.status} />
+                          <h3 className="text-base font-medium text-gray-900">
+                            {r.file_url
+                              .split("/")
+                              .pop()
+                              ?.split("-")
+                              .slice(1)
+                              .join("-") || "Resume"}
+                          </h3>
                           {typeof r.score === "number" && (
                             <span className="text-sm font-medium text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
                               Score: {r.score}
                             </span>
                           )}
                         </div>
+                        <p className="text-sm text-gray-500">
+                          Uploaded on{" "}
+                          {new Date(r.created_at).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
                         {r.notes && (
                           <p className="text-sm text-gray-600 leading-relaxed">
                             {r.notes}
