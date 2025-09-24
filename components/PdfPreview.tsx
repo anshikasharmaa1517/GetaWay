@@ -5,14 +5,13 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-// Use local worker with proper fallback
-if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-}
+// Use a working CDN worker
+pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
 export function PdfPreview({ fileUrl }: { fileUrl: string }) {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   return (
     <div className="rounded border p-4">
@@ -22,21 +21,38 @@ export function PdfPreview({ fileUrl }: { fileUrl: string }) {
           Failed to load PDF: {error}
         </div>
       ) : (
-        <Document
-          file={fileUrl}
-          onLoadSuccess={({ numPages }) => {
-            setNumPages(numPages);
-            setError(null);
-          }}
-          onLoadError={(error) => {
-            console.error("PDF load error:", error);
-            setError(error.message || "Unknown error");
-          }}
-        >
-          <Page pageNumber={1} width={600} />
-        </Document>
+        <div>
+          {loading && (
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              <span className="ml-2 text-gray-600">Loading PDF...</span>
+            </div>
+          )}
+          <Document
+            file={fileUrl}
+            onLoadSuccess={({ numPages }) => {
+              setNumPages(numPages);
+              setError(null);
+              setLoading(false);
+            }}
+            onLoadError={(error) => {
+              console.error("PDF load error:", error);
+              setError(error.message || "Could not load PDF");
+              setLoading(false);
+            }}
+            loading=""
+          >
+            <Page 
+              pageNumber={1} 
+              width={600}
+              loading=""
+            />
+          </Document>
+        </div>
       )}
-      <p className="text-sm text-gray-600 mt-2">Pages: {numPages}</p>
+      {numPages && (
+        <p className="text-sm text-gray-600 mt-2">Pages: {numPages}</p>
+      )}
     </div>
   );
 }
