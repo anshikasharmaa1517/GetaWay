@@ -78,7 +78,7 @@ export function AppBar() {
             <img
               src="/logo.png"
               alt="PaperWeight Logo"
-              className="w-11 h-11 object-contain mix-blend-multiply"
+              className="w-13 h-13 object-contain mix-blend-multiply"
             />
             {/* <span className="text-sm font-medium tracking-tight">
               PaperWeighte
@@ -97,7 +97,7 @@ export function AppBar() {
           <img
             src="/logo.png"
             alt="PaperWeight Logo"
-            className="w-11 h-11 object-contain mix-blend-multiply"
+            className="w-13 h-13 object-contain mix-blend-multiply"
           />
         </Link>
         <nav className="flex items-center gap-2">
