@@ -3,14 +3,11 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") || "/reviewers";
 
-  console.log("Auth callback received:", { code: !!code, next, origin });
-
   if (!code) {
-    console.log("No code provided, redirecting to login");
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -36,49 +33,14 @@ export async function GET(request: Request) {
 
   try {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    
-    console.log("Exchange result:", { 
-      user: !!data.user, 
-      session: !!data.session,
-      error: error?.message 
-    });
 
-    if (error) {
-      console.log("Auth error:", error.message);
+    if (error || !data.user || !data.session) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    if (!data.user || !data.session) {
-      console.log("No user or session after exchange");
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-
-    // Create the redirect response
-    const redirectUrl = new URL(next, request.url);
-    console.log("Redirecting to:", redirectUrl.toString());
-    
-    const response = NextResponse.redirect(redirectUrl);
-    
-    // Set the session cookies manually to ensure they persist
-    response.cookies.set('sb-access-token', data.session.access_token, {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
-    });
-    
-    response.cookies.set('sb-refresh-token', data.session.refresh_token, {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30 // 30 days
-    });
-
-    return response;
+    // Redirect to the requested path
+    return NextResponse.redirect(new URL(next, request.url));
   } catch (error) {
-    console.log("Callback error:", error);
     return NextResponse.redirect(new URL("/login", request.url));
   }
 }
