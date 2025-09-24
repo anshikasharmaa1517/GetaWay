@@ -354,18 +354,47 @@ export async function POST(req: NextRequest) {
 
     // If reviewer creation was successful, update user's role to 'reviewer'
     if (!error && data) {
-      console.log("Reviewer created successfully, updating user role to 'reviewer' for user:", user.id);
-      
+      console.log(
+        "Reviewer created successfully, updating user role to 'reviewer' for user:",
+        user.id
+      );
+
       const { error: roleError } = await supabase
         .from("profiles")
         .update({ role: "reviewer" })
         .eq("id", user.id);
-      
+
       if (roleError) {
         console.error("Error updating user role:", roleError);
-        // Don't fail the entire request, but log the error
+        return new Response(
+          JSON.stringify({ error: "Failed to update user role" }),
+          {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          }
+        );
       } else {
         console.log("User role successfully updated to 'reviewer'");
+
+        // Verify the role was actually updated
+        const { data: updatedProfile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        if (updatedProfile?.role !== "reviewer") {
+          console.error("Role update verification failed:", updatedProfile);
+          return new Response(
+            JSON.stringify({ error: "Role update verification failed" }),
+            {
+              status: 500,
+              headers: { "content-type": "application/json" },
+            }
+          );
+        }
+
+        console.log("Role update verified successfully:", updatedProfile.role);
       }
     }
   }
