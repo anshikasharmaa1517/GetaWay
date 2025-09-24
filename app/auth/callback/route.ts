@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   }
 
   const cookieStore = await cookies();
-  
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     // Create the redirect response
     const redirectUrl = new URL(next, request.url);
     const response = NextResponse.redirect(redirectUrl);
-    
+
     // Ensure cookies are properly set for the session
     return response;
   } catch (error) {

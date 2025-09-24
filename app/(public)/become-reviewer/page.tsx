@@ -85,10 +85,20 @@ export default function BecomeReviewerPage() {
     if (!canNext) return;
     setSaving(true);
     try {
+      // Get the session token for authentication
+      const supabase = getBrowserSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        setError("You must be logged in to create a reviewer profile");
+        return;
+      }
+
       let photo_url: string | null = linkedinPhotoUrl;
       if (photoFile) {
         try {
-          const supabase = getBrowserSupabaseClient();
           const bucket = "reviewer-photos";
           const ext = photoFile.name.includes(".")
             ? photoFile.name.split(".").pop() || "jpg"
@@ -103,9 +113,13 @@ export default function BecomeReviewerPage() {
           }
         } catch {}
       }
+
       const res = await fetch("/api/reviewers", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           display_name: slug,
           country,
