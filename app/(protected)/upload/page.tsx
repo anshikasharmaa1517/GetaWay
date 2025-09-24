@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect, Suspense } from "react";
 import { useDropzone } from "react-dropzone";
 import dynamic from "next/dynamic";
 import { getBrowserSupabaseClient } from "@/lib/supabase";
@@ -12,7 +12,7 @@ const PdfPreview = dynamic(
   { ssr: false }
 );
 
-export default function UploadPage() {
+function UploadContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
@@ -213,5 +213,25 @@ export default function UploadPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function UploadPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <AppBar />
+        <main className="mx-auto max-w-4xl px-4 py-8">
+          <div className="text-center">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+            </div>
+          </div>
+        </main>
+      </div>
+    }>
+      <UploadContent />
+    </Suspense>
   );
 }
