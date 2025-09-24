@@ -78,7 +78,7 @@ export function AppBar() {
             <img
               src="/logo.png"
               alt="PaperWeight Logo"
-              className="w-13 h-13 object-contain mix-blend-multiply"
+              className="w-12 h-12 object-contain mix-blend-multiply flex-shrink-0"
             />
           </Link>
           <div className="animate-pulse bg-gray-200 h-8 w-8 rounded-full"></div>
