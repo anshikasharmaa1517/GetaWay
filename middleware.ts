@@ -196,6 +196,8 @@ export async function middleware(request: NextRequest) {
       "/login",
       "/become-reviewer",
       "/become-reviewer-auth",
+      "/leaderboard",
+      "/auth/callback",
     ];
 
     // Check if it's a public reviewer profile (e.g., /r/username)
@@ -207,6 +209,10 @@ export async function middleware(request: NextRequest) {
 
     // Require authentication for protected routes
     if (!session || !session.isAuthenticated) {
+      // Prevent redirect loops - don't redirect if already on login page
+      if (pathname === "/login") {
+        return NextResponse.next();
+      }
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
@@ -232,10 +238,26 @@ export async function middleware(request: NextRequest) {
   } catch (error) {
     console.error("Middleware error:", error);
 
-    // On error, redirect to login
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    // On error, allow public routes to pass through
+    const publicRoutes = [
+      "/",
+      "/login",
+      "/become-reviewer",
+      "/become-reviewer-auth",
+      "/leaderboard",
+    ];
+    if (publicRoutes.includes(pathname)) {
+      return NextResponse.next();
+    }
+
+    // For protected routes, redirect to login but prevent loops
+    if (pathname !== "/login") {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next();
   }
 }
 
