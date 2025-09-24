@@ -151,8 +151,17 @@ export default function BecomeReviewerPage() {
       console.log("Success! Redirecting to creator dashboard");
 
       // Add a small delay to ensure the role update has time to complete
-      setTimeout(() => {
+      setTimeout(async () => {
         console.log("Redirecting to /creator after role update delay");
+
+        // Try to refresh the session first
+        try {
+          const supabase = getBrowserSupabaseClient();
+          await supabase.auth.refreshSession();
+          console.log("Session refreshed successfully");
+        } catch (error) {
+          console.log("Session refresh failed:", error);
+        }
 
         // Force a hard refresh to clear any cached session data
         window.location.href = "/creator?refresh=" + Date.now();
