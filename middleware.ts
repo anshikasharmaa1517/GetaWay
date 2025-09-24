@@ -223,9 +223,14 @@ export async function middleware(request: NextRequest) {
     // Check role-based access
     const accessCheck = checkRouteAccess(session.role, pathname);
 
+    console.log(
+      `Middleware: User role: ${session.role}, Path: ${pathname}, Allowed: ${accessCheck.allowed}`
+    );
+
     if (!accessCheck.allowed) {
       // Redirect to appropriate dashboard based on user role
       const redirectPath = getDefaultRedirectPath(session.role);
+      console.log(`Middleware: Access denied, redirecting to: ${redirectPath}`);
       return NextResponse.redirect(new URL(redirectPath, request.url));
     }
 

@@ -1,15 +1,15 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { UserProfile, UserRole, UserSession } from './types';
-import { getDefaultRedirectPath, isValidRole } from './roles';
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { UserProfile, UserRole, UserSession } from "./types";
+import { getDefaultRedirectPath, isValidRole } from "./roles";
 
 export async function getServerSession(): Promise<UserSession | null> {
   const cookieStore = await cookies();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables');
+    throw new Error("Missing Supabase environment variables");
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -21,22 +21,25 @@ export async function getServerSession(): Promise<UserSession | null> {
         cookieStore.set({ name, value, ...options });
       },
       remove(name: string, options: any) {
-        cookieStore.set({ name, value: '', ...options });
+        cookieStore.set({ name, value: "", ...options });
       },
     },
   });
 
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
   if (error || !user) {
     return null;
   }
 
   // Get user profile with role
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
     .single();
 
   if (!profile) {
@@ -45,10 +48,10 @@ export async function getServerSession(): Promise<UserSession | null> {
 
   // Determine user role
   const role = await determineUserRole(user.id, supabase);
-  
+
   const userProfile: UserProfile = {
     id: user.id,
-    email: user.email || '',
+    email: user.email || "",
     role,
     onboarded: profile.onboarded || false,
     avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
@@ -64,79 +67,89 @@ export async function getServerSession(): Promise<UserSession | null> {
   };
 }
 
-async function determineUserRole(userId: string, supabase: any): Promise<UserRole> {
+async function determineUserRole(
+  userId: string,
+  supabase: any
+): Promise<UserRole> {
   // Check if user is admin
-  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const adminEmails = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase());
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (user?.email && adminEmails.includes(user.email.toLowerCase())) {
-    return 'admin';
+    return "admin";
   }
 
   // Get user profile to check role
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', userId)
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
     .single();
 
+  console.log(`Session: Profile role for user ${userId}:`, profile?.role);
+
   // If profile exists and has a role, use it
-  if (profile?.role && ['user', 'reviewer', 'admin'].includes(profile.role)) {
+  if (profile?.role && ["user", "reviewer", "admin"].includes(profile.role)) {
+    console.log(`Session: Using profile role: ${profile.role}`);
     return profile.role as UserRole;
   }
 
   // Fallback: Check if user has a reviewer profile (for backward compatibility)
   const { data: reviewerProfile } = await supabase
-    .from('reviewers')
-    .select('id')
-    .eq('user_id', userId)
+    .from("reviewers")
+    .select("id")
+    .eq("user_id", userId)
     .single();
 
   if (reviewerProfile) {
-    return 'reviewer';
+    return "reviewer";
   }
 
   // Default to regular user
-  return 'user';
+  return "user";
 }
 
 function getPermissionsForRole(role: UserRole): string[] {
   const permissions = {
-    'user': [
-      'upload_resume',
-      'view_reviewers',
-      'follow_reviewer',
-      'view_own_resumes',
-      'edit_own_profile',
+    user: [
+      "upload_resume",
+      "view_reviewers",
+      "follow_reviewer",
+      "view_own_resumes",
+      "edit_own_profile",
     ],
-    'reviewer': [
-      'upload_resume',
-      'view_reviewers',
-      'follow_reviewer',
-      'view_own_resumes',
-      'edit_own_profile',
-      'create_reviewer_profile',
-      'edit_reviewer_profile',
-      'view_own_reviews',
-      'review_resumes',
-      'manage_followers',
+    reviewer: [
+      "upload_resume",
+      "view_reviewers",
+      "follow_reviewer",
+      "view_own_resumes",
+      "edit_own_profile",
+      "create_reviewer_profile",
+      "edit_reviewer_profile",
+      "view_own_reviews",
+      "review_resumes",
+      "manage_followers",
     ],
-    'admin': [
-      'upload_resume',
-      'view_reviewers',
-      'follow_reviewer',
-      'view_own_resumes',
-      'edit_own_profile',
-      'create_reviewer_profile',
-      'edit_reviewer_profile',
-      'view_own_reviews',
-      'review_resumes',
-      'manage_followers',
-      'manage_all_users',
-      'manage_all_reviewers',
-      'manage_all_resumes',
-      'view_analytics',
-      'manage_system',
+    admin: [
+      "upload_resume",
+      "view_reviewers",
+      "follow_reviewer",
+      "view_own_resumes",
+      "edit_own_profile",
+      "create_reviewer_profile",
+      "edit_reviewer_profile",
+      "view_own_reviews",
+      "review_resumes",
+      "manage_followers",
+      "manage_all_users",
+      "manage_all_reviewers",
+      "manage_all_resumes",
+      "view_analytics",
+      "manage_system",
     ],
   };
 
@@ -145,49 +158,58 @@ function getPermissionsForRole(role: UserRole): string[] {
 
 export function requireAuth(session: UserSession | null): UserSession {
   if (!session || !session.isAuthenticated) {
-    throw new Error('Authentication required');
+    throw new Error("Authentication required");
   }
   return session;
 }
 
-export function requireRole(session: UserSession | null, requiredRole: UserRole): UserSession {
+export function requireRole(
+  session: UserSession | null,
+  requiredRole: UserRole
+): UserSession {
   const authSession = requireAuth(session);
-  
-  if (authSession.role !== requiredRole && authSession.role !== 'admin') {
+
+  if (authSession.role !== requiredRole && authSession.role !== "admin") {
     throw new Error(`Role '${requiredRole}' required`);
   }
-  
+
   return authSession;
 }
 
-export function requirePermission(session: UserSession | null, permission: string): UserSession {
+export function requirePermission(
+  session: UserSession | null,
+  permission: string
+): UserSession {
   const authSession = requireAuth(session);
-  
+
   if (!authSession.permissions.includes(permission)) {
     throw new Error(`Permission '${permission}' required`);
   }
-  
+
   return authSession;
 }
 
-export function getRedirectPath(session: UserSession | null, requestedPath: string): string {
+export function getRedirectPath(
+  session: UserSession | null,
+  requestedPath: string
+): string {
   if (!session || !session.isAuthenticated) {
-    return '/login';
+    return "/login";
   }
 
   // If user is trying to access a path they don't have permission for
   const defaultPath = getDefaultRedirectPath(session.role);
-  
+
   // Check if the requested path is appropriate for their role
-  if (session.role === 'user' && requestedPath.startsWith('/creator')) {
+  if (session.role === "user" && requestedPath.startsWith("/creator")) {
     return defaultPath;
   }
-  
-  if (session.role === 'reviewer' && requestedPath.startsWith('/admin')) {
+
+  if (session.role === "reviewer" && requestedPath.startsWith("/admin")) {
     return defaultPath;
   }
-  
-  if (session.role === 'user' && requestedPath.startsWith('/admin')) {
+
+  if (session.role === "user" && requestedPath.startsWith("/admin")) {
     return defaultPath;
   }
 
@@ -196,24 +218,24 @@ export function getRedirectPath(session: UserSession | null, requestedPath: stri
 
 // Client-side session management
 export function getClientSession(): UserSession | null {
-  if (typeof window === 'undefined') return null;
-  
+  if (typeof window === "undefined") return null;
+
   try {
-    const sessionData = localStorage.getItem('user_session');
+    const sessionData = localStorage.getItem("user_session");
     if (!sessionData) return null;
-    
+
     const session = JSON.parse(sessionData);
-    
+
     // Check if session is expired (24 hours)
     const now = Date.now();
     const sessionTime = new Date(session.created_at).getTime();
     const twentyFourHours = 24 * 60 * 60 * 1000;
-    
+
     if (now - sessionTime > twentyFourHours) {
-      localStorage.removeItem('user_session');
+      localStorage.removeItem("user_session");
       return null;
     }
-    
+
     return session;
   } catch {
     return null;
@@ -221,16 +243,19 @@ export function getClientSession(): UserSession | null {
 }
 
 export function setClientSession(session: UserSession): void {
-  if (typeof window === 'undefined') return;
-  
-  localStorage.setItem('user_session', JSON.stringify({
-    ...session,
-    created_at: new Date().toISOString(),
-  }));
+  if (typeof window === "undefined") return;
+
+  localStorage.setItem(
+    "user_session",
+    JSON.stringify({
+      ...session,
+      created_at: new Date().toISOString(),
+    })
+  );
 }
 
 export function clearClientSession(): void {
-  if (typeof window === 'undefined') return;
-  
-  localStorage.removeItem('user_session');
+  if (typeof window === "undefined") return;
+
+  localStorage.removeItem("user_session");
 }
