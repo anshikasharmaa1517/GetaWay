@@ -74,15 +74,12 @@ export function AppBar() {
     return (
       <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/70 dark:bg-zinc-900/50 border-b border-zinc-200/60 dark:border-white/10">
         <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center">
             <img
               src="/logo.png"
               alt="PaperWeight Logo"
               className="w-13 h-13 object-contain mix-blend-multiply"
             />
-            {/* <span className="text-sm font-medium tracking-tight">
-              PaperWeighte
-            </span> */}
           </Link>
           <div className="animate-pulse bg-gray-200 h-8 w-8 rounded-full"></div>
         </div>
