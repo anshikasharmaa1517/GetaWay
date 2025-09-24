@@ -5,8 +5,8 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-// Use a working CDN worker
-pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+// Use local worker file
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 export function PdfPreview({ fileUrl }: { fileUrl: string }) {
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -41,12 +41,12 @@ export function PdfPreview({ fileUrl }: { fileUrl: string }) {
               setLoading(false);
             }}
             loading=""
+            options={{
+              cMapUrl: "https://unpkg.com/pdfjs-dist@3.11.174/cmaps/",
+              cMapPacked: true,
+            }}
           >
-            <Page 
-              pageNumber={1} 
-              width={600}
-              loading=""
-            />
+            <Page pageNumber={1} width={600} loading="" />
           </Document>
         </div>
       )}
