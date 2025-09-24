@@ -260,9 +260,58 @@ export function useSession() {
 
   // Listen for session refresh events
   useEffect(() => {
-    const handleSessionRefresh = () => {
-      // Reload the session when onboarding is completed
-      window.location.reload();
+    const handleSessionRefresh = async () => {
+      // Smoothly refresh the session without page reload
+      setLoading(true);
+      try {
+        const supabase = getBrowserSupabaseClient();
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error || !user) {
+          setSession(null);
+          return;
+        }
+
+        // Get updated user profile
+        let { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (!profile) {
+          setSession(null);
+          return;
+        }
+
+        // Determine user role
+        const role = await determineUserRole(user.id, supabase);
+
+        const userSession: UserSession = {
+          user: {
+            id: user.id,
+            email: user.email || "",
+            role,
+            onboarded: profile.onboarded || false,
+            avatar_url:
+              user.user_metadata?.avatar_url || user.user_metadata?.picture,
+            created_at: user.created_at,
+            updated_at: profile.updated_at || user.created_at,
+          },
+          isAuthenticated: true,
+          role,
+          permissions: getPermissionsForRole(role),
+        };
+
+        setSession(userSession);
+      } catch (error) {
+        console.error("Session refresh error:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     window.addEventListener("session-refresh", handleSessionRefresh);

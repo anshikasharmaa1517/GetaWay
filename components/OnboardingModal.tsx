@@ -12,6 +12,7 @@ export function OnboardingModal() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [employment, setEmployment] = useState<Employment | null>(null);
   // Student fields
@@ -195,9 +196,14 @@ export function OnboardingModal() {
       return;
     }
     setSaving(false);
-    setOpen(false);
-    // Trigger a custom event to refresh session state
-    window.dispatchEvent(new CustomEvent("session-refresh"));
+    setClosing(true);
+    // Smooth exit animation
+    setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+      // Trigger smooth session refresh
+      window.dispatchEvent(new CustomEvent("session-refresh"));
+    }, 200);
   }
 
   // Ensure the backdrop appears immediately on first paint to avoid exposing
@@ -209,15 +215,19 @@ export function OnboardingModal() {
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-md transition-opacity duration-200 ${
-        visible ? "opacity-100" : "opacity-0"
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-md transition-all duration-300 ease-out ${
+        closing ? "opacity-0" : visible ? "opacity-100" : "opacity-0"
       }`}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`w-[90%] max-w-md rounded-2xl bg-white shadow-2xl p-6 transition-transform duration-200 ${
-          visible ? "translate-y-0" : "translate-y-1"
+        className={`w-[90%] max-w-md rounded-2xl bg-white shadow-2xl p-6 transition-all duration-300 ease-out ${
+          closing
+            ? "translate-y-4 scale-95 opacity-0"
+            : visible
+            ? "translate-y-0 scale-100 opacity-100"
+            : "translate-y-1 scale-95 opacity-0"
         }`}
       >
         <div className="mx-auto mb-4 h-1 w-16 rounded-full bg-zinc-200" />
