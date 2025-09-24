@@ -111,8 +111,8 @@ function UploadContent() {
         return;
       }
 
-      // Success - redirect to dashboard
-      router.push("/dashboard");
+      // Success - redirect to profile page
+      router.push("/settings/profile");
     } catch (error) {
       console.error("Upload error:", error);
       setError("An unexpected error occurred. Please try again.");
