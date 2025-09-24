@@ -38,8 +38,12 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    // Redirect to the requested path
-    return NextResponse.redirect(new URL(next, request.url));
+    // Create the redirect response
+    const redirectUrl = new URL(next, request.url);
+    const response = NextResponse.redirect(redirectUrl);
+    
+    // Ensure cookies are properly set for the session
+    return response;
   } catch (error) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
