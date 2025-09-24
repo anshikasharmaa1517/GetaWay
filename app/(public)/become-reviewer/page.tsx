@@ -41,6 +41,7 @@ export default function BecomeReviewerPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [linkedinPhotoUrl, setLinkedinPhotoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const canNext = useMemo(
     () =>
       social.trim().length > 0 &&
@@ -84,6 +85,7 @@ export default function BecomeReviewerPage() {
     e.preventDefault();
     if (!canNext) return;
     setSaving(true);
+    setError(null);
     try {
       // Get the session token for authentication
       const supabase = getBrowserSupabaseClient();
@@ -131,15 +133,22 @@ export default function BecomeReviewerPage() {
           photo_url,
         }),
       });
+
+      console.log("API Response status:", res.status);
+
       if (res.status === 401) {
-        window.location.href = "/creator";
+        console.log("401 Unauthorized - redirecting to login");
+        window.location.href = "/login";
         return;
       }
       if (!res.ok) {
-        // fallback: still allow navigation for now
-        window.location.href = "/creator";
+        const errorData = await res.json().catch(() => ({}));
+        console.log("API Error:", errorData);
+        setError(errorData.error || "Failed to create reviewer profile");
         return;
       }
+
+      console.log("Success! Redirecting to creator dashboard");
       window.location.href = "/creator";
     } finally {
       setSaving(false);
@@ -191,6 +200,26 @@ export default function BecomeReviewerPage() {
           </p>
 
           <form onSubmit={handleNext} className="mt-6 space-y-6">
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="w-5 h-5 text-red-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium">Profile photo</label>
               <input
