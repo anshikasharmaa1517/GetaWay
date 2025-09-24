@@ -199,6 +199,7 @@ export async function middleware(request: NextRequest) {
       "/leaderboard",
       "/auth/callback",
       "/debug", // Temporary debug page
+      "/reviewers", // Temporary - for debugging magic link
     ];
 
     // Check if it's a public reviewer profile (e.g., /r/username)
