@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getBrowserSupabaseClient } from '@/lib/supabase';
-import { UserRole, UserSession } from '@/lib/types';
-import { checkRouteAccess, getDefaultRedirectPath } from '@/lib/roles';
+import { ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getBrowserSupabaseClient } from "@/lib/supabase";
+import { UserRole, UserSession } from "@/lib/types";
+import { checkRouteAccess, getDefaultRedirectPath } from "@/lib/roles";
 
 interface RoleGuardProps {
   children: ReactNode;
@@ -14,11 +14,11 @@ interface RoleGuardProps {
   redirectTo?: string;
 }
 
-export function RoleGuard({ 
-  children, 
-  allowedRoles, 
-  fallback = null, 
-  redirectTo 
+export function RoleGuard({
+  children,
+  allowedRoles,
+  fallback = null,
+  redirectTo,
 }: RoleGuardProps) {
   const [session, setSession] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,35 +28,39 @@ export function RoleGuard({
     async function checkSession() {
       try {
         const supabase = getBrowserSupabaseClient();
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
         if (error || !user) {
-          router.push('/login');
+          router.push("/login");
           return;
         }
 
         // Get user profile with role
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
           .single();
 
         if (!profile) {
-          router.push('/login');
+          router.push("/login");
           return;
         }
 
         // Determine user role
         const role = await determineUserRole(user.id, supabase);
-        
+
         const userSession: UserSession = {
           user: {
             id: user.id,
-            email: user.email || '',
+            email: user.email || "",
             role,
             onboarded: profile.onboarded || false,
-            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+            avatar_url:
+              user.user_metadata?.avatar_url || user.user_metadata?.picture,
             created_at: user.created_at,
             updated_at: profile.updated_at || user.created_at,
           },
@@ -73,10 +77,9 @@ export function RoleGuard({
           router.push(redirectPath);
           return;
         }
-
       } catch (error) {
-        console.error('Session check error:', error);
-        router.push('/login');
+        console.error("Session check error:", error);
+        router.push("/login");
       } finally {
         setLoading(false);
       }
@@ -104,67 +107,74 @@ export function RoleGuard({
   return <>{children}</>;
 }
 
-async function determineUserRole(userId: string, supabase: any): Promise<UserRole> {
+async function determineUserRole(
+  userId: string,
+  supabase: any
+): Promise<UserRole> {
   // Check if user is admin
-  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase());
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (user?.email && adminEmails.includes(user.email.toLowerCase())) {
-    return 'admin';
+    return "admin";
   }
 
   // Check if user has a reviewer profile
   const { data: reviewerProfile } = await supabase
-    .from('reviewers')
-    .select('id')
-    .eq('user_id', userId)
+    .from("reviewers")
+    .select("id")
+    .eq("user_id", userId)
     .single();
 
   if (reviewerProfile) {
-    return 'reviewer';
+    return "reviewer";
   }
 
   // Default to regular user
-  return 'user';
+  return "user";
 }
 
 function getPermissionsForRole(role: UserRole): string[] {
   const permissions = {
-    'user': [
-      'upload_resume',
-      'view_reviewers',
-      'follow_reviewer',
-      'view_own_resumes',
-      'edit_own_profile',
+    user: [
+      "upload_resume",
+      "view_reviewers",
+      "follow_reviewer",
+      "view_own_resumes",
+      "edit_own_profile",
     ],
-    'reviewer': [
-      'upload_resume',
-      'view_reviewers',
-      'follow_reviewer',
-      'view_own_resumes',
-      'edit_own_profile',
-      'create_reviewer_profile',
-      'edit_reviewer_profile',
-      'view_own_reviews',
-      'review_resumes',
-      'manage_followers',
+    reviewer: [
+      "upload_resume",
+      "view_reviewers",
+      "follow_reviewer",
+      "view_own_resumes",
+      "edit_own_profile",
+      "create_reviewer_profile",
+      "edit_reviewer_profile",
+      "view_own_reviews",
+      "review_resumes",
+      "manage_followers",
     ],
-    'admin': [
-      'upload_resume',
-      'view_reviewers',
-      'follow_reviewer',
-      'view_own_resumes',
-      'edit_own_profile',
-      'create_reviewer_profile',
-      'edit_reviewer_profile',
-      'view_own_reviews',
-      'review_resumes',
-      'manage_followers',
-      'manage_all_users',
-      'manage_all_reviewers',
-      'manage_all_resumes',
-      'view_analytics',
-      'manage_system',
+    admin: [
+      "upload_resume",
+      "view_reviewers",
+      "follow_reviewer",
+      "view_own_resumes",
+      "edit_own_profile",
+      "create_reviewer_profile",
+      "edit_reviewer_profile",
+      "view_own_reviews",
+      "review_resumes",
+      "manage_followers",
+      "manage_all_users",
+      "manage_all_reviewers",
+      "manage_all_resumes",
+      "view_analytics",
+      "manage_system",
     ],
   };
 
@@ -180,8 +190,11 @@ export function useSession() {
     async function loadSession() {
       try {
         const supabase = getBrowserSupabaseClient();
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
         if (error || !user) {
           setSession(null);
           return;
@@ -189,25 +202,25 @@ export function useSession() {
 
         // Get user profile with role
         let { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
           .single();
 
         // If no profile exists, create a default one for new users
         if (!profile) {
           const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
+            .from("profiles")
             .insert({
               id: user.id,
-              role: 'user',
+              role: "user",
               onboarded: false,
             })
-            .select('*')
+            .select("*")
             .single();
 
           if (createError) {
-            console.error('Error creating profile:', createError);
+            console.error("Error creating profile:", createError);
             setSession(null);
             return;
           }
@@ -216,14 +229,15 @@ export function useSession() {
 
         // Determine user role
         const role = await determineUserRole(user.id, supabase);
-        
+
         const userSession: UserSession = {
           user: {
             id: user.id,
-            email: user.email || '',
+            email: user.email || "",
             role,
             onboarded: profile.onboarded || false,
-            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+            avatar_url:
+              user.user_metadata?.avatar_url || user.user_metadata?.picture,
             created_at: user.created_at,
             updated_at: profile.updated_at || user.created_at,
           },
@@ -234,7 +248,7 @@ export function useSession() {
 
         setSession(userSession);
       } catch (error) {
-        console.error('Session load error:', error);
+        console.error("Session load error:", error);
         setSession(null);
       } finally {
         setLoading(false);
@@ -242,6 +256,18 @@ export function useSession() {
     }
 
     loadSession();
+  }, []);
+
+  // Listen for session refresh events
+  useEffect(() => {
+    const handleSessionRefresh = () => {
+      // Reload the session when onboarding is completed
+      window.location.reload();
+    };
+
+    window.addEventListener("session-refresh", handleSessionRefresh);
+    return () =>
+      window.removeEventListener("session-refresh", handleSessionRefresh);
   }, []);
 
   return { session, loading };

@@ -196,7 +196,8 @@ export function OnboardingModal() {
     }
     setSaving(false);
     setOpen(false);
-    // Don't redirect - just close the modal and stay on current page
+    // Trigger a custom event to refresh session state
+    window.dispatchEvent(new CustomEvent("session-refresh"));
   }
 
   // Ensure the backdrop appears immediately on first paint to avoid exposing
