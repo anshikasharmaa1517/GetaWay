@@ -116,8 +116,12 @@ export default function ReviewerLoginPage() {
     <div className="min-h-screen bg-zinc-50">
       {/* Header */}
       <header className="mx-auto max-w-4xl px-6 py-6 flex items-center justify-between">
-        <div className="text-base md:text-lg font-semibold tracking-tight">
-          PaperWeight
+        <div className="flex items-center">
+          <img
+            src="/logo.png"
+            alt="PaperWeight Logo"
+            className="w-10 h-10 md:w-12 md:h-12 object-contain mix-blend-multiply"
+          />
         </div>
         <div className="flex items-center gap-4">
           <a

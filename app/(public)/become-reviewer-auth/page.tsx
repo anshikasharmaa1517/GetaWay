@@ -67,8 +67,12 @@ export default function BecomeReviewerAuthPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-200 to-zinc-50">
       <header className="mx-auto max-w-4xl px-6 py-6 flex items-center justify-between">
-        <div className="text-[15px] md:text-[17px] font-semibold tracking-tight text-zinc-900">
-          PaperWeight
+        <div className="flex items-center">
+          <img
+            src="/logo.png"
+            alt="PaperWeight Logo"
+            className="w-10 h-10 md:w-12 md:h-12 object-contain mix-blend-multiply"
+          />
         </div>
         <a
           href="/reviewer-login"
