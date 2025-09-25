@@ -150,37 +150,8 @@ export default function BecomeReviewerPage() {
 
       console.log("Success! Redirecting to creator dashboard");
 
-      // Longer delay to ensure the role update is fully propagated in Vercel/serverless
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      // Refresh the session to ensure we have the latest role
-      console.log("Refreshing session...");
-      const { data: refreshData, error: refreshError } =
-        await supabase.auth.refreshSession();
-      console.log("Session refresh result:", { refreshData, refreshError });
-
-      // Check current user after refresh
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      console.log("Current user after refresh:", { user, userError });
-
-      // The API has already created the reviewer profile and user profile
-      // No need to check again - just proceed with redirect
-      console.log("✅ Reviewer setup completed successfully");
-
-      // Redirect directly to the reviewer dashboard since the role has been updated
-      console.log("Redirecting to /creator...");
-
-      // Use a more robust redirect approach for Vercel
-      // Redirect to a success page that will handle the role verification
-      try {
-        router.push("/creator?reviewer_setup=success");
-      } catch (error) {
-        console.log("Router push failed, using window.location:", error);
-        window.location.href = "/creator?reviewer_setup=success";
-      }
+      // Simple redirect like normal login flow
+      window.location.href = "/creator";
     } finally {
       setSaving(false);
     }

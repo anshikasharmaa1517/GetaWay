@@ -424,26 +424,17 @@ export async function POST(req: NextRequest) {
         user.id
       );
 
-      // Use admin client to update the role to bypass RLS
-      const { createClient } = await import("@supabase/supabase-js");
-      const adminSupabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      // Simple profile update using the same pattern as user profiles
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: user.id,
+        role: "reviewer",
+        onboarded: true,
+      });
 
-      // First, ensure the profile exists by upserting it
-      const { error: upsertError } = await adminSupabase
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          role: "reviewer",
-          onboarded: true,
-        });
-
-      if (upsertError) {
-        console.error("Error upserting user profile:", upsertError);
+      if (profileError) {
+        console.error("Error updating user profile:", profileError);
         return new Response(
-          JSON.stringify({ error: "Failed to create/update user profile" }),
+          JSON.stringify({ error: "Failed to update user profile" }),
           {
             status: 500,
             headers: { "content-type": "application/json" },
@@ -451,7 +442,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      console.log("User profile upserted successfully with reviewer role");
+      console.log("User profile updated successfully with reviewer role");
     }
   }
 
