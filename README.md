@@ -26,6 +26,9 @@ PaperWeight is a comprehensive resume review platform built with modern web tech
 - **Experience Management**: Showcase professional background and expertise
 - **Follower System**: Build a following and track engagement
 
+  <img width="1440" height="900" alt="image" src="https://github.com/user-attachments/assets/74b999c1-857d-4900-ac23-e3e3c9ce54af" />
+
+
 ### For Administrators
 
 - **User Management**: Comprehensive admin dashboard
