@@ -157,26 +157,28 @@ export default function BecomeReviewerPage() {
       }
 
       // Wait a moment for the role update to propagate through the system
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Verify the role has been updated before redirecting
       let attempts = 0;
       const maxAttempts = 5;
-      
+
       while (attempts < maxAttempts) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", session.user.id)
           .single();
-        
+
         if (profile?.role === "reviewer") {
           console.log("Role successfully updated to reviewer, redirecting...");
           break;
         }
-        
-        console.log(`Attempt ${attempts + 1}: Role not yet updated, waiting...`);
-        await new Promise(resolve => setTimeout(resolve, 200));
+
+        console.log(
+          `Attempt ${attempts + 1}: Role not yet updated, waiting...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, 200));
         attempts++;
       }
 
@@ -281,7 +283,7 @@ export default function BecomeReviewerPage() {
               </label>
               <div className="mt-2 flex items-center gap-2">
                 <span className="rounded-xl border border-zinc-300 px-3 py-2 text-sm text-zinc-600 bg-zinc-50">
-                  getaway.io/
+                  Paperweight/
                 </span>
                 <input
                   value={slug}
