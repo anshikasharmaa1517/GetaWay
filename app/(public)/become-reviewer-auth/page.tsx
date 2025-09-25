@@ -164,13 +164,13 @@ export default function BecomeReviewerAuthPage() {
                     ? "Create account"
                     : "Sign in"}
                 </button>
-                {/* <button
+                <button
                   type="button"
                   onClick={sendMagicLink}
                   className="inline-flex items-center justify-center rounded-full border border-zinc-400 bg-white px-5 py-3 text-sm font-medium text-zinc-900 shadow-sm hover:bg-zinc-100 cursor-pointer"
                 >
                   Send magic link
-                </button> */}
+                </button>
               </div>
             </form>
 
