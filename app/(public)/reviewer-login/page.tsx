@@ -120,7 +120,7 @@ export default function ReviewerLoginPage() {
           <img
             src="/logo.png"
             alt="PaperWeight Logo"
-            className="w-10 h-10 md:w-12 md:h-12 object-contain mix-blend-multiply"
+            className="w-12 h-12 md:w-16 md:h-16 object-contain mix-blend-multiply"
           />
         </div>
         <div className="flex items-center gap-4">

@@ -165,6 +165,16 @@ export function OnboardingModal() {
   async function save() {
     setSaving(true);
     setSaveError(null);
+
+    // Validate required fields for Student
+    if (employment === "Student") {
+      if (!studentUniversity.trim() || !studentDegree.trim() || !studentGradYear || !desiredJobTitle.trim()) {
+        setSaveError("Please fill in all required fields marked with *");
+        setSaving(false);
+        return;
+      }
+    }
+
     const payload: any = {
       employment_status: employment,
       desired_job_title: desiredJobTitle || null,
@@ -276,7 +286,8 @@ export function OnboardingModal() {
                     value={studentUniversity}
                     onChange={(e) => setStudentUniversity(e.target.value)}
                     onBlur={() => setTimeout(() => setCollegeResults([]), 100)}
-                    placeholder="Current university or college"
+                    placeholder="Current university or college *"
+                    required
                     className="w-full rounded-xl border border-zinc-300 px-4 py-2 text-sm"
                   />
                   {collegeResults.length > 0 && (
@@ -300,7 +311,8 @@ export function OnboardingModal() {
                 <input
                   value={studentDegree}
                   onChange={(e) => setStudentDegree(e.target.value)}
-                  placeholder="Current degree/program"
+                  placeholder="Current degree/program *"
+                  required
                   className="w-full rounded-xl border border-zinc-300 px-4 py-2 text-sm"
                 />
                 <input
@@ -310,8 +322,9 @@ export function OnboardingModal() {
                       e.target.value ? Number(e.target.value) : ""
                     )
                   }
-                  placeholder="Expected graduation year"
+                  placeholder="Expected graduation year *"
                   inputMode="numeric"
+                  required
                   className="w-full rounded-xl border border-zinc-300 px-4 py-2 text-sm"
                 />
               </>
@@ -358,7 +371,8 @@ export function OnboardingModal() {
                 value={desiredJobTitle}
                 onChange={(e) => setDesiredJobTitle(e.target.value)}
                 onBlur={() => setTimeout(() => setJobTitleResults([]), 100)}
-                placeholder="Desired job title"
+                placeholder="Desired job title *"
+                required
                 className="w-full rounded-xl border border-zinc-300 px-4 py-2 text-sm"
               />
               {jobTitleResults.length > 0 && (
