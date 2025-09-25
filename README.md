@@ -319,5 +319,3 @@ The platform supports three user roles:
 - **Email**: support@paperweight.app
 
 ---
-
-_Empowering careers through meaningful connections and expert feedback._
