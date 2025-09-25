@@ -17,6 +17,7 @@ type Reviewer = {
   photo_url?: string;
   follower_count?: number;
   rating?: number;
+  reviews?: number;
   review_count?: number;
 };
 
@@ -47,36 +48,60 @@ export default function PublicReviewerPage({ params }: Props) {
     async function loadData() {
       try {
         const supabase = getBrowserSupabaseClient();
+
+        // Get reviewer data (public, no auth required)
+        console.log("Fetching reviewer with slug:", resolvedParams.slug);
+
+        // Try slug first, then ID as fallback
+        let res = await fetch(
+          `/api/reviewers?slug=${encodeURIComponent(resolvedParams.slug)}`
+        );
+
+        // If slug lookup fails, try ID lookup (in case slug is actually an ID)
+        if (!res.ok) {
+          console.log("Slug lookup failed, trying ID lookup");
+          res = await fetch(
+            `/api/reviewers?id=${encodeURIComponent(resolvedParams.slug)}`
+          );
+        }
+        console.log("API response status:", res.status);
+
+        if (!res.ok) {
+          console.log("API error response:", res.status, res.statusText);
+          setReviewer(null);
+          return;
+        }
+
+        const responseData = await res.json();
+        console.log("API response data:", responseData);
+
+        const { reviewer: reviewerData } = responseData;
+        if (!reviewerData) {
+          console.log("No reviewer data found in response");
+          setReviewer(null);
+          return;
+        }
+
+        console.log("Reviewer data found:", reviewerData);
+        setReviewer(reviewerData);
+
+        // Check if user is authenticated for following functionality
         const {
           data: { user },
         } = await supabase.auth.getUser();
 
-        if (!user) {
-          router.push("/login");
-          return;
+        if (user) {
+          // Get following status (only if user is authenticated)
+          const followRes = await fetch(
+            `/api/follow?slug=${encodeURIComponent(resolvedParams.slug)}`
+          );
+          if (followRes.ok) {
+            const followJson = await followRes.json();
+            setFollowing(!!followJson.following);
+          }
         }
 
-        // Get reviewer data
-        const res = await fetch(
-          `/api/reviewers?slug=${encodeURIComponent(resolvedParams.slug)}`
-        );
-        if (!res.ok) {
-          setReviewer(null);
-          return;
-        }
-        const { reviewer: reviewerData } = await res.json();
-        setReviewer(reviewerData);
-
-        // Get following status
-        const followRes = await fetch(
-          `/api/follow?slug=${encodeURIComponent(resolvedParams.slug)}`
-        );
-        if (followRes.ok) {
-          const followJson = await followRes.json();
-          setFollowing(!!followJson.following);
-        }
-
-        // Get experiences
+        // Get experiences (public data)
         const expRes = await fetch(
           `/api/reviewer-experiences/${encodeURIComponent(resolvedParams.slug)}`
         );
@@ -92,10 +117,22 @@ export default function PublicReviewerPage({ params }: Props) {
     }
 
     loadData();
-  }, [resolvedParams.slug, router]);
+  }, [resolvedParams.slug]);
 
   async function handleFollow() {
     if (followLoading || !reviewer) return;
+
+    // Check if user is authenticated
+    const supabase = getBrowserSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      // Redirect to login if not authenticated
+      router.push("/login");
+      return;
+    }
 
     setFollowLoading(true);
 

@@ -78,7 +78,18 @@ export default function ReviewersPage() {
         console.log("Number of reviewers:", json.reviewers.length);
         if (json.reviewers.length > 0) {
           console.log("First reviewer company:", json.reviewers[0].company);
+          console.log("First reviewer slug:", json.reviewers[0].slug);
         }
+        
+        // Debug: Check which reviewers have slugs
+        json.reviewers.forEach((reviewer: any, index: number) => {
+          console.log(`Reviewer ${index + 1}:`, {
+            name: reviewer.name,
+            slug: reviewer.slug,
+            hasSlug: !!reviewer.slug
+          });
+        });
+        
         setReviewers(json.reviewers);
 
         // Get following status
@@ -268,7 +279,7 @@ export default function ReviewersPage() {
               <div className="px-6 pb-6 pt-2 mt-auto">
                 <div className="flex items-center gap-3">
                   <a
-                    href={r.slug ? `/r/${encodeURIComponent(r.slug)}` : `#`}
+                    href={r.slug ? `/r/${encodeURIComponent(r.slug)}` : `/r/${r.id}`}
                     className="flex-1 inline-flex items-center justify-center rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors duration-200"
                     target="_blank"
                     rel="noopener noreferrer"

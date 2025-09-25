@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const role = (searchParams.get("role") || "").toLowerCase();
   const slug = searchParams.get("slug");
+  const id = searchParams.get("id");
   const me = searchParams.get("me") === "1";
 
   if (me) {
@@ -99,6 +100,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (slug) {
+    console.log("Looking for reviewer with slug:", slug);
     const { data, error } = await supabase
       .from("reviewers")
       .select(
@@ -106,8 +108,71 @@ export async function GET(req: NextRequest) {
       )
       .eq("slug", slug)
       .single();
+
+    console.log("Database query result:", { data, error });
+
     if (error && error.code !== "PGRST116") {
+      console.log("Database error:", error);
       return new Response(JSON.stringify({ error: error.message }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (!data) {
+      console.log("No reviewer found with slug:", slug);
+      return new Response(JSON.stringify({ reviewer: null }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    // Get follower count
+    let followerCount = 0;
+    if (data) {
+      const { count } = await supabase
+        .from("follows")
+        .select("*", { count: "exact", head: true })
+        .eq("reviewer_id", data.user_id);
+      followerCount = count || 0;
+    }
+
+    const reviewerWithStats = data
+      ? {
+          ...data,
+          follower_count: followerCount,
+        }
+      : null;
+
+    return new Response(JSON.stringify({ reviewer: reviewerWithStats }), {
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  // Handle ID-based lookup as fallback
+  if (id) {
+    console.log("Looking for reviewer with ID:", id);
+    const { data, error } = await supabase
+      .from("reviewers")
+      .select(
+        "id, user_id, display_name, photo_url, company, experience_years, headline, country, expertise, rating, reviews, slug, social_link"
+      )
+      .eq("id", id)
+      .single();
+
+    console.log("Database query result by ID:", { data, error });
+
+    if (error && error.code !== "PGRST116") {
+      console.log("Database error:", error);
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (!data) {
+      console.log("No reviewer found with ID:", id);
+      return new Response(JSON.stringify({ reviewer: null }), {
         status: 404,
         headers: { "content-type": "application/json" },
       });
