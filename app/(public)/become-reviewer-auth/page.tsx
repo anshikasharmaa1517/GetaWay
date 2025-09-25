@@ -167,15 +167,6 @@ export default function BecomeReviewerAuthPage() {
                 >
                   Send magic link
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsSignup((v) => !v)}
-                  className="text-sm underline"
-                >
-                  {isSignup
-                    ? "Have an account? Sign in"
-                    : "New here? Create account"}
-                </button>
               </div>
             </form>
 

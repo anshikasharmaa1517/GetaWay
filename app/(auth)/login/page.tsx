@@ -12,83 +12,73 @@ export default function LoginPage() {
       : null;
   const nextPath = params?.get("next") || "/reviewers";
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"enterEmail" | "password" | "magic">(
-    "enterEmail"
-  );
-  const [isSignup, setIsSignup] = useState(false);
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLoading(true);
+
     const supabase = getBrowserSupabaseClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback?next=%2Freviewers`
-            : undefined,
-      },
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${
+        window.location.origin
+      }/auth/callback?next=${encodeURIComponent(nextPath)}`,
     });
-    if (error) setError(error.message);
-    else setSent(true);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setMagicLinkSent(true);
+    }
+    setLoading(false);
   }
 
   // OAuth removed per requirements; keep email + password/magic link only
 
-  async function continueWithPassword(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (mode === "enterEmail") {
-      setMode("password");
-      return;
-    }
-    const supabase = getBrowserSupabaseClient();
     setLoading(true);
-    if (isSignup) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fdashboard`,
-        },
-      });
-      if (error) setError(error.message);
-      else setSent(true);
+
+    const supabase = getBrowserSupabaseClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
     } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) {
-        setError(error.message);
-      } else {
-        // Determine user role and redirect accordingly
-        try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", (await supabase.auth.getUser()).data.user?.id)
-            .single();
+      // Determine user role and redirect accordingly
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", (await supabase.auth.getUser()).data.user?.id)
+          .single();
 
-          const role = profile?.role || "user";
-          let redirectPath = "/dashboard";
+        const role = profile?.role || "user";
+        let redirectPath = nextPath;
 
+        // Override default redirect based on role if no specific next path
+        if (nextPath === "/reviewers") {
           if (role === "admin") {
             redirectPath = "/admin";
           } else if (role === "reviewer") {
             redirectPath = "/creator";
+          } else {
+            redirectPath = "/dashboard";
           }
-
-          router.replace(redirectPath);
-        } catch {
-          router.replace("/dashboard");
         }
+
+        router.replace(redirectPath);
+      } catch {
+        router.replace(nextPath);
       }
     }
     setLoading(false);
@@ -123,129 +113,124 @@ export default function LoginPage() {
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="mb-10">
-            <h1 className="text-5xl font-serif leading-tight text-zinc-900">
-              Better resume,
-              <span className="whitespace-nowrap"> better&#8209;hiring.</span>
+            <h1 className="text-4xl font-semibold leading-tight text-zinc-900">
+              Welcome back
             </h1>
+            <p className="text-zinc-600 mt-2">Sign in to your account</p>
           </div>
-          {sent ? (
-            <p className="text-sm">
-              Check your email for a magic link to sign in.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {/* Step 1: Email */}
-              {mode !== "password" && (
-                <form onSubmit={continueWithPassword} className="space-y-4">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    required
-                    className="w-full rounded-lg border border-pink-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  />
-                  {error && <p className="text-sm text-red-600">{error}</p>}
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="submit"
-                      disabled={!isValidEmail(email)}
-                      className="rounded-lg bg-black text-white px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-900 active:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Next
-                    </button>
-                    <button
-                      type="button"
-                      onClick={sendMagicLink}
-                      className="rounded-lg border px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-50 active:bg-zinc-100"
-                    >
-                      Send magic link
-                    </button>
-                  </div>
-                </form>
-              )}
 
-              {/* Step 2: Password Sign in / Sign up */}
-              {mode === "password" && (
-                <form onSubmit={continueWithPassword} className="space-y-4">
-                  <div className="text-sm text-zinc-600">
-                    {email}{" "}
-                    <button
-                      type="button"
-                      className="ml-2 underline"
-                      onClick={() => {
-                        setMode("enterEmail");
-                        setPassword("");
-                      }}
-                    >
-                      Change
-                    </button>
-                  </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    required
-                    className="w-full rounded-lg border border-pink-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  />
-                  {error && <p className="text-sm text-red-600">{error}</p>}
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="inline-flex items-center gap-2 select-none">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="rounded border-zinc-300"
-                      />
-                      Keep me signed in
-                    </label>
-                    <button
-                      type="button"
-                      className="underline cursor-pointer"
-                      onClick={async () => {
-                        const supabase = getBrowserSupabaseClient();
-                        setError(null);
-                        const { error } =
-                          await supabase.auth.resetPasswordForEmail(email, {
-                            redirectTo: `${window.location.origin}/auth/callback`,
-                          });
-                        if (error) setError(error.message);
-                        else setSent(true);
-                      }}
-                    >
-                      Forgot your password?
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="rounded-lg bg-black text-white px-5 py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? "Working…" : "Sign in"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMode("enterEmail")}
-                      className="rounded-lg border px-5 py-3 cursor-pointer"
-                    >
-                      Back
-                    </button>
-                  </div>
-                  {/* magic link and create account controls intentionally removed */}
-                </form>
-              )}
-
-              {/* OAuth removed */}
+          {magicLinkSent ? (
+            <div className="text-center">
+              <p className="text-sm text-zinc-600">
+                Check your email for a password reset link.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMagicLinkSent(false);
+                  setShowForgotPassword(false);
+                  setError(null);
+                }}
+                className="mt-4 text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer"
+              >
+                Back to login
+              </button>
             </div>
+          ) : showForgotPassword ? (
+            <form onSubmit={sendMagicLink} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
+                  Email address
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <div className="flex items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={loading || !isValidEmail(email)}
+                  className="flex-1 rounded-lg bg-black text-white px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-900 active:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Sending..." : "Send reset link"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setError(null);
+                  }}
+                  className="px-5 py-3 text-zinc-600 hover:text-zinc-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
+                  Email address
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                >
+                  Forgot your password?
+                </button>
+              </div>
+              <button
+                type="submit"
+                disabled={loading || !isValidEmail(email) || !password}
+                className="w-full rounded-lg bg-black text-white px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-900 active:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Signing in..." : "Sign in"}
+              </button>
+            </form>
           )}
-          <p className="text-xs text-zinc-600 mt-8">
-            Looking for your account?{" "}
-            <a href="#" className="underline">
-              Sign in
-            </a>
-          </p>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-zinc-600">
+              Don't have an account?{" "}
+              <a
+                href="/become-reviewer-auth"
+                className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
+              >
+                Sign up here
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
