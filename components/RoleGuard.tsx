@@ -46,8 +46,23 @@ export function RoleGuard({
           .single();
 
         if (!profile) {
-          router.push("/login");
-          return;
+          // Create a default profile for new users
+          const { data: newProfile, error: createError } = await supabase
+            .from("profiles")
+            .insert({
+              id: user.id,
+              role: "user",
+              onboarded: false,
+            })
+            .select("*")
+            .single();
+
+          if (createError) {
+            console.error("Error creating profile:", createError);
+            router.push("/login");
+            return;
+          }
+          profile = newProfile;
         }
 
         // Determine user role
