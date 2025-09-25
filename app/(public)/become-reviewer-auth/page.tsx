@@ -13,6 +13,23 @@ export default function BecomeReviewerAuthPage() {
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(true);
 
+  async function sendMagicLink(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const supabase = getBrowserSupabaseClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/auth/callback?next=%2Fbecome-reviewer`
+            : undefined,
+      },
+    });
+    if (error) setError(error.message);
+    else setSent(true);
+  }
+
   async function continueWithPassword(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -135,17 +152,24 @@ export default function BecomeReviewerAuthPage() {
               {error && (
                 <p className="sm:col-span-2 text-sm text-red-600">{error}</p>
               )}
-              <div className="sm:col-span-2 flex justify-center">
+              <div className="sm:col-span-2 flex items-center gap-3">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex items-center justify-center rounded-full bg-black text-white px-8 py-3 text-sm font-medium shadow-sm hover:bg-black/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center rounded-full bg-black text-white px-5 py-3 text-sm font-medium shadow-sm hover:bg-black/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {loading
                     ? "Working…"
                     : isSignup
                     ? "Create account"
                     : "Sign in"}
+                </button>
+                <button
+                  type="button"
+                  onClick={sendMagicLink}
+                  className="inline-flex items-center justify-center rounded-full border border-zinc-400 bg-white px-5 py-3 text-sm font-medium text-zinc-900 shadow-sm hover:bg-zinc-100 cursor-pointer"
+                >
+                  Send magic link
                 </button>
               </div>
             </form>
