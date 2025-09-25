@@ -150,14 +150,38 @@ export default function BecomeReviewerPage() {
 
       console.log("Success! Redirecting to creator dashboard");
 
-      // Refresh session
+      // Force session refresh and wait for role update to propagate
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
         console.error("Session refresh failed:", refreshError);
       }
 
-      // Redirect using router
-      router.push("/creator");
+      // Wait a moment for the role update to propagate through the system
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Verify the role has been updated before redirecting
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (attempts < maxAttempts) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (profile?.role === "reviewer") {
+          console.log("Role successfully updated to reviewer, redirecting...");
+          break;
+        }
+        
+        console.log(`Attempt ${attempts + 1}: Role not yet updated, waiting...`);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        attempts++;
+      }
+
+      // Use window.location.href for a hard redirect to ensure middleware picks up the new role
+      window.location.href = "/creator";
     } finally {
       setSaving(false);
     }

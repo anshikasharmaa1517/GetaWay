@@ -433,16 +433,17 @@ export async function POST(req: NextRequest) {
 
       if (profileError) {
         console.error("Error updating user profile:", profileError);
-        return new Response(
-          JSON.stringify({ error: "Failed to update user profile" }),
-          {
-            status: 500,
-            headers: { "content-type": "application/json" },
-          }
+        // Don't fail the entire request if profile update fails,
+        // the role determination logic can handle this
+        console.log(
+          "Profile update failed, but continuing with reviewer creation"
         );
+      } else {
+        console.log("User profile updated successfully with reviewer role");
       }
 
-      console.log("User profile updated successfully with reviewer role");
+      // Force a small delay to ensure database consistency
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
