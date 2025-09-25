@@ -8,7 +8,9 @@ export async function GET(request: Request) {
   const next = searchParams.get("next") || "/reviewers";
 
   if (!code) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    // If next is /creator, redirect to reviewer-login instead of regular login
+    const loginUrl = next === "/creator" ? "/reviewer-login" : "/login";
+    return NextResponse.redirect(new URL(loginUrl, request.url));
   }
 
   const cookieStore = await cookies();
@@ -35,7 +37,23 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error || !data.user || !data.session) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      // If next is /creator, redirect to reviewer-login instead of regular login
+      const loginUrl = next === "/creator" ? "/reviewer-login" : "/login";
+      return NextResponse.redirect(new URL(loginUrl, request.url));
+    }
+
+    // If redirecting to creator dashboard, verify user is a reviewer
+    if (next === "/creator") {
+      const { data: reviewerProfile } = await supabase
+        .from("reviewers")
+        .select("id")
+        .eq("user_id", data.user.id)
+        .single();
+
+      if (!reviewerProfile) {
+        // User is not a reviewer, redirect to reviewer login with error
+        return NextResponse.redirect(new URL("/reviewer-login?error=not_reviewer", request.url));
+      }
     }
 
     // Create the redirect response
@@ -45,6 +63,8 @@ export async function GET(request: Request) {
     // Ensure cookies are properly set for the session
     return response;
   } catch (error) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    // If next is /creator, redirect to reviewer-login instead of regular login
+    const loginUrl = next === "/creator" ? "/reviewer-login" : "/login";
+    return NextResponse.redirect(new URL(loginUrl, request.url));
   }
 }
