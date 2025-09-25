@@ -71,8 +71,8 @@ export default function BecomeReviewerAuthPage() {
           PaperWeight
         </div>
         <a
-          href="/login"
-          className="rounded-full border border-zinc-400 bg-white px-4 py-1.5 text-xs md:text-sm font-medium text-zinc-900 shadow-sm hover:bg-zinc-100"
+          href="/reviewer-login"
+          className="rounded-full border border-zinc-400 bg-white px-4 py-1.5 text-xs md:text-sm font-medium text-zinc-900 shadow-sm hover:bg-zinc-100 cursor-pointer"
         >
           Login
         </a>

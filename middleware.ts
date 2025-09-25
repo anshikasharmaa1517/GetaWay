@@ -196,6 +196,7 @@ export async function middleware(request: NextRequest) {
     const publicRoutes = [
       "/",
       "/login",
+      "/reviewer-login",
       "/become-reviewer",
       "/become-reviewer-auth",
       "/leaderboard",
