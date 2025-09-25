@@ -304,29 +304,6 @@ The platform supports three user roles:
 - **Advanced Analytics**: Predictive analytics and insights
 - **White-label Solution**: Customizable platform for organizations
 
-## Contributing
-
-### Development Workflow
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make your changes** with proper testing
-4. **Commit your changes**: `git commit -m 'Add amazing feature'`
-5. **Push to the branch**: `git push origin feature/amazing-feature`
-6. **Open a Pull Request**
-
-### Code Standards
-
-- **TypeScript**: Strict type checking enabled
-- **ESLint**: Follow the configured linting rules
-- **Component Structure**: Use functional components with hooks
-- **Error Handling**: Comprehensive error boundaries and logging
-- **Security**: All inputs must be validated and sanitized
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## Support
 
 ### Documentation
@@ -340,14 +317,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Issues**: [GitHub Issues](https://github.com/anshikasharmaa1517/Paper-Weight/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/anshikasharmaa1517/Paper-Weight/discussions)
 - **Email**: support@paperweight.app
-
-## Acknowledgments
-
-- **Supabase** for the excellent backend-as-a-service platform
-- **Vercel** for seamless deployment and hosting
-- **Next.js Team** for the powerful React framework
-- **Tailwind CSS** for the utility-first CSS framework
-- **Open Source Community** for the amazing tools and libraries
 
 ---
 
