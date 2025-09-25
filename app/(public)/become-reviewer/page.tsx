@@ -151,7 +151,7 @@ export default function BecomeReviewerPage() {
       console.log("Success! Redirecting to creator dashboard");
 
       // Longer delay to ensure the role update is fully propagated in Vercel/serverless
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       // Refresh the session to ensure we have the latest role
       console.log("Refreshing session...");

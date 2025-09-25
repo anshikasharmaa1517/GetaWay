@@ -35,7 +35,10 @@ export async function getServerSession(): Promise<UserSession | null> {
     return null;
   }
 
-  // Get user profile with role
+  // Determine user role first (this will create profile if needed)
+  const role = await determineUserRole(user.id, supabase);
+
+  // Get user profile with role (should exist now)
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
@@ -43,11 +46,12 @@ export async function getServerSession(): Promise<UserSession | null> {
     .single();
 
   if (!profile) {
+    console.error(
+      "Profile still not found after role determination for user:",
+      user.id
+    );
     return null;
   }
-
-  // Determine user role
-  const role = await determineUserRole(user.id, supabase);
 
   const userProfile: UserProfile = {
     id: user.id,
