@@ -150,8 +150,14 @@ export default function BecomeReviewerPage() {
 
       console.log("Success! Redirecting to creator dashboard");
 
-      // Simple redirect like normal login flow
-      window.location.href = "/creator";
+      // Refresh session
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error("Session refresh failed:", refreshError);
+      }
+
+      // Redirect using router
+      router.push("/creator");
     } finally {
       setSaving(false);
     }

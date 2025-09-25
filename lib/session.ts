@@ -75,7 +75,6 @@ async function determineUserRole(
   userId: string,
   supabase: any
 ): Promise<UserRole> {
-  // Check if user is admin
   const adminEmails = (process.env.ADMIN_EMAILS || "")
     .split(",")
     .map((e) => e.trim().toLowerCase());
@@ -87,56 +86,17 @@ async function determineUserRole(
     return "admin";
   }
 
-  // Try to get user profile role first (if column exists)
-  try {
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", userId)
-      .single();
-
-    if (profileError) {
-      console.log(
-        `Session: Profile not found for user ${userId}, creating default profile`
-      );
-      // Create a default profile for the user
-      const { error: createError } = await supabase.from("profiles").insert({
-        id: userId,
-        role: "user",
-        onboarded: false,
-      });
-
-      if (createError) {
-        console.error("Error creating default profile:", createError);
-        return "user";
-      }
-
-      return "user";
-    }
-
-    console.log(`Session: Profile role for user ${userId}:`, profile?.role);
-
-    // If profile exists and has a role, use it
-    if (profile?.role && ["user", "reviewer", "admin"].includes(profile.role)) {
-      console.log(`Session: Using profile role: ${profile.role}`);
-      return profile.role as UserRole;
-    }
-  } catch (error) {
-    console.log(`Session: Error getting profile role, using fallback:`, error);
-  }
-
-  // Fallback: Check if user has a reviewer profile (for backward compatibility)
-  const { data: reviewerProfile } = await supabase
-    .from("reviewers")
-    .select("id")
-    .eq("user_id", userId)
+  // Simple role determination
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
     .single();
 
-  if (reviewerProfile) {
-    return "reviewer";
+  if (profile?.role) {
+    return profile.role as UserRole;
   }
 
-  // Default to regular user
   return "user";
 }
 
