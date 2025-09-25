@@ -1,14 +1,14 @@
-# PaperWeight 🚀
+# PaperWeight
 
 A modern, production-ready resume review platform that connects job seekers with industry professionals for personalized feedback and career guidance.
 
 ![PaperWeight Logo](public/logo.png)
 
-## 🌟 Overview
+## Overview
 
 PaperWeight is a comprehensive resume review platform built with modern web technologies. It enables users to upload their resumes, connect with experienced reviewers, and receive detailed feedback to improve their job applications. The platform features role-based access control, real-time messaging, and a sophisticated review system.
 
-## ✨ Key Features
+## Key Features
 
 ### For Job Seekers
 
@@ -66,7 +66,7 @@ PaperWeight is a comprehensive resume review platform built with modern web tech
 - **Vercel** - Production deployment and hosting
 - **Git** - Version control
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -166,7 +166,7 @@ paperweight/
 └── middleware.ts                # Next.js middleware
 ```
 
-## 🔐 Security Features
+## Security Features
 
 ### Authentication & Authorization
 
@@ -189,7 +189,7 @@ paperweight/
 - **Secure headers** (HSTS, X-Frame-Options, etc.)
 - **Admin-only endpoints** with proper authorization
 
-## 🚀 Deployment
+## Deployment
 
 ### Vercel Deployment
 
@@ -221,7 +221,7 @@ ADMIN_EMAILS=admin@yourdomain.com
 NODE_ENV=production
 ```
 
-## 📊 Database Schema
+## Database Schema
 
 ### Core Tables
 
@@ -257,7 +257,7 @@ The platform supports three user roles:
 - **Preview Support**: Client-side PDF preview
 - **Access Control**: RLS policies for file access
 
-## 🧪 Testing
+## Testing
 
 ### Manual Testing Checklist
 
@@ -278,7 +278,7 @@ The platform supports three user roles:
 - [ ] File upload security
 - [ ] Rate limiting effectiveness
 
-## 🚀 Future Improvements
+## Future Improvements
 
 ### Short-term (Next 3 months)
 
@@ -304,7 +304,7 @@ The platform supports three user roles:
 - **Advanced Analytics**: Predictive analytics and insights
 - **White-label Solution**: Customizable platform for organizations
 
-## 🤝 Contributing
+## Contributing
 
 ### Development Workflow
 
@@ -323,11 +323,11 @@ The platform supports three user roles:
 - **Error Handling**: Comprehensive error boundaries and logging
 - **Security**: All inputs must be validated and sanitized
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## Support
 
 ### Documentation
 
@@ -341,7 +341,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Discussions**: [GitHub Discussions](https://github.com/anshikasharmaa1517/Paper-Weight/discussions)
 - **Email**: support@paperweight.app
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Supabase** for the excellent backend-as-a-service platform
 - **Vercel** for seamless deployment and hosting
@@ -350,7 +350,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Open Source Community** for the amazing tools and libraries
 
 ---
-
-**Built with ❤️ by the PaperWeight Team**
 
 _Empowering careers through meaningful connections and expert feedback._
