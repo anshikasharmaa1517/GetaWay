@@ -413,7 +413,7 @@ export default function ReviewPage() {
                       }`}
                     >
                       <div
-                        className={`max-w-xs px-4 py-3 rounded-lg ${
+                        className={`max-w-xs px-4 py-3 rounded-lg cursor-pointer hover:opacity-80 transition-opacity ${
                           message.sender_id === currentUserId
                             ? "bg-blue-500 text-white"
                             : "bg-white border border-zinc-200 text-zinc-800"

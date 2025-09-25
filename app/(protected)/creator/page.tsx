@@ -554,7 +554,7 @@ export default function CreatorDashboard() {
                     }`}
                   >
                     <div
-                      className={`max-w-xs px-4 py-3 rounded-lg ${
+                      className={`max-w-xs px-4 py-3 rounded-lg cursor-pointer hover:opacity-80 transition-opacity ${
                         message.sender_id === currentReviewerId
                           ? "bg-blue-500 text-white"
                           : "bg-zinc-100 text-zinc-800"
