@@ -453,17 +453,34 @@ export async function POST(req: NextRequest) {
 
       console.log("User profile upserted successfully with reviewer role");
 
+      // Add a small delay to ensure the database update is committed
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Verify the profile was created/updated correctly
-      const { data: updatedProfile } = await adminSupabase
+      const { data: updatedProfile, error: verifyError } = await adminSupabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .single();
 
-      if (updatedProfile?.role !== "reviewer") {
-        console.error("Profile verification failed:", updatedProfile);
+      if (verifyError) {
+        console.error("Error verifying profile update:", verifyError);
         return new Response(
-          JSON.stringify({ error: "Profile verification failed" }),
+          JSON.stringify({ error: "Failed to verify role update" }),
+          {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          }
+        );
+      }
+
+      if (updatedProfile?.role !== "reviewer") {
+        console.error(
+          "Role update verification failed. Expected 'reviewer', got:",
+          updatedProfile?.role
+        );
+        return new Response(
+          JSON.stringify({ error: "Role update verification failed" }),
           {
             status: 500,
             headers: { "content-type": "application/json" },

@@ -85,11 +85,30 @@ async function determineUserRole(
 
   // Try to get user profile role first (if column exists)
   try {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", userId)
-      .maybeSingle();
+      .single();
+
+    if (profileError) {
+      console.log(
+        `Session: Profile not found for user ${userId}, creating default profile`
+      );
+      // Create a default profile for the user
+      const { error: createError } = await supabase.from("profiles").insert({
+        id: userId,
+        role: "user",
+        onboarded: false,
+      });
+
+      if (createError) {
+        console.error("Error creating default profile:", createError);
+        return "user";
+      }
+
+      return "user";
+    }
 
     console.log(`Session: Profile role for user ${userId}:`, profile?.role);
 
@@ -99,10 +118,7 @@ async function determineUserRole(
       return profile.role as UserRole;
     }
   } catch (error) {
-    console.log(
-      `Session: Profile role column may not exist, using fallback:`,
-      error
-    );
+    console.log(`Session: Error getting profile role, using fallback:`, error);
   }
 
   // Fallback: Check if user has a reviewer profile (for backward compatibility)

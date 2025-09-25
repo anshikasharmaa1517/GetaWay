@@ -39,13 +39,17 @@ export function RoleGuard({
         }
 
         // Get user profile with role
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .single();
 
-        if (!profile) {
+        if (profileError || !profile) {
+          console.log(
+            "Profile not found, creating default profile for user:",
+            user.id
+          );
           // Create a default profile for new users
           const { data: newProfile, error: createError } = await supabase
             .from("profiles")
@@ -238,14 +242,18 @@ export function useSession() {
         }
 
         // Get user profile with role
-        let { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .single();
 
         // If no profile exists, create a default one for new users
-        if (!profile) {
+        if (profileError || !profile) {
+          console.log(
+            "Profile not found in useSession, creating default profile for user:",
+            user.id
+          );
           const { data: newProfile, error: createError } = await supabase
             .from("profiles")
             .insert({
