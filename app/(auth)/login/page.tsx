@@ -31,7 +31,7 @@ export default function LoginPage() {
       options: {
         emailRedirectTo:
           typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback?next=%2Freviewers`
+            ? `${window.location.origin}/auth/callback?next=%2Fdashboard`
             : undefined,
       },
     });

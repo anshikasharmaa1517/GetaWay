@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") || "/reviewers";
+  const next = searchParams.get("next") || "/dashboard";
 
   if (!code) {
     // If next is /creator, redirect to reviewer-login instead of regular login
@@ -37,12 +37,16 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error || !data.user || !data.session) {
+      console.error("Auth callback error:", error);
       // If next is /creator, redirect to reviewer-login instead of regular login
       const loginUrl = next === "/creator" ? "/reviewer-login" : "/login";
       return NextResponse.redirect(new URL(loginUrl, request.url));
     }
 
-    // If redirecting to creator dashboard, verify user is a reviewer
+    // Determine user role and redirect accordingly
+    let redirectPath = next;
+    
+    // If next is /creator, verify user is a reviewer
     if (next === "/creator") {
       const { data: reviewerProfile } = await supabase
         .from("reviewers")
@@ -54,10 +58,32 @@ export async function GET(request: Request) {
         // User is not a reviewer, redirect to reviewer login with error
         return NextResponse.redirect(new URL("/reviewer-login?error=not_reviewer", request.url));
       }
+    } else if (next === "/dashboard" || next === "/reviewers") {
+      // For general users, determine their role and redirect appropriately
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
+
+        const role = profile?.role || "user";
+        
+        if (role === "admin") {
+          redirectPath = "/admin";
+        } else if (role === "reviewer") {
+          redirectPath = "/creator";
+        } else {
+          redirectPath = "/dashboard";
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        redirectPath = "/dashboard";
+      }
     }
 
     // Create the redirect response
-    const redirectUrl = new URL(next, request.url);
+    const redirectUrl = new URL(redirectPath, request.url);
     const response = NextResponse.redirect(redirectUrl);
 
     // Ensure cookies are properly set for the session
