@@ -202,7 +202,6 @@ export async function middleware(request: NextRequest) {
       "/leaderboard",
       "/auth/callback",
       "/debug", // Temporary debug page
-      "/reviewers", // Temporary - magic link redirect issue
     ];
 
     // Check if it's a public reviewer profile (e.g., /r/username)
@@ -210,6 +209,12 @@ export async function middleware(request: NextRequest) {
 
     if (publicRoutes.includes(pathname) || isPublicReviewerProfile) {
       return NextResponse.next();
+    }
+
+    // Special handling for /reviewers route - redirect authenticated users to their dashboard
+    if (pathname === "/reviewers" && session && session.isAuthenticated) {
+      const redirectPath = getDefaultRedirectPath(session.role);
+      return NextResponse.redirect(new URL(redirectPath, request.url));
     }
 
     // Require authentication for protected routes
