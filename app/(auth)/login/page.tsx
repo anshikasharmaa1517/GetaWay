@@ -25,18 +25,29 @@ export default function LoginPage() {
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLoading(true);
+    
     const supabase = getBrowserSupabaseClient();
+    const redirectUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+    
+    console.log("Sending magic link to:", email);
+    console.log("Redirect URL:", redirectUrl);
+    
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback?next=%2Freviewers`
-            : undefined,
+        emailRedirectTo: redirectUrl,
       },
     });
-    if (error) setError(error.message);
-    else setSent(true);
+    
+    if (error) {
+      console.error("Magic link error:", error);
+      setError(error.message);
+    } else {
+      console.log("Magic link sent successfully");
+      setSent(true);
+    }
+    setLoading(false);
   }
 
   // OAuth removed per requirements; keep email + password/magic link only
@@ -157,9 +168,10 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={sendMagicLink}
-                      className="rounded-lg border px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-50 active:bg-zinc-100"
+                      disabled={loading || !isValidEmail(email)}
+                      className="rounded-lg border px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-50 active:bg-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Send magic link
+                      {loading ? "Sending..." : "Send magic link"}
                     </button>
                   </div>
                 </form>
@@ -208,7 +220,7 @@ export default function LoginPage() {
                         setError(null);
                         const { error } =
                           await supabase.auth.resetPasswordForEmail(email, {
-                            redirectTo: `${window.location.origin}/auth/callback`,
+                            redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
                           });
                         if (error) setError(error.message);
                         else setSent(true);
