@@ -22,7 +22,7 @@ export default function BecomeReviewerAuthPage() {
       options: {
         emailRedirectTo:
           typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent("/become-reviewer")}`
+            ? `${window.location.origin}/auth/callback?next=%2Fbecome-reviewer`
             : undefined,
       },
     });

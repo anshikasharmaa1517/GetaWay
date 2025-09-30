@@ -7,11 +7,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") || "/reviewers";
 
-  console.log("Auth callback - Code:", code ? "present" : "missing");
-  console.log("Auth callback - Next:", next);
-
   if (!code) {
-    console.log("No code provided, redirecting to login");
     // If next is /creator, redirect to reviewer-login instead of regular login
     const loginUrl = next === "/creator" ? "/reviewer-login" : "/login";
     return NextResponse.redirect(new URL(loginUrl, request.url));
@@ -38,24 +34,13 @@ export async function GET(request: Request) {
   );
 
   try {
-    console.log("Exchanging code for session...");
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (error) {
-      console.error("Session exchange error:", error);
+    if (error || !data.user || !data.session) {
       // If next is /creator, redirect to reviewer-login instead of regular login
       const loginUrl = next === "/creator" ? "/reviewer-login" : "/login";
       return NextResponse.redirect(new URL(loginUrl, request.url));
     }
-
-    if (!data.user || !data.session) {
-      console.error("No user or session in response");
-      // If next is /creator, redirect to reviewer-login instead of regular login
-      const loginUrl = next === "/creator" ? "/reviewer-login" : "/login";
-      return NextResponse.redirect(new URL(loginUrl, request.url));
-    }
-
-    console.log("Session created successfully for user:", data.user.id);
 
     // If redirecting to creator dashboard, verify user is a reviewer
     if (next === "/creator") {
@@ -73,7 +58,6 @@ export async function GET(request: Request) {
 
     // Create the redirect response
     const redirectUrl = new URL(next, request.url);
-    console.log("Redirecting to:", redirectUrl.toString());
     const response = NextResponse.redirect(redirectUrl);
 
     // Ensure cookies are properly set for the session

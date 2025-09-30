@@ -83,7 +83,7 @@ export default function ReviewerLoginPage() {
       options: {
         emailRedirectTo:
           typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent("/creator")}`
+            ? `${window.location.origin}/auth/callback?next=%2Fcreator`
             : undefined,
       },
     });
