@@ -101,7 +101,7 @@ export default function ReviewerLoginPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4 light-theme">
         <div className="max-w-md w-full">
           <div className="text-center">
             <h1 className="text-2xl font-semibold mb-4">Check your email</h1>
@@ -126,7 +126,7 @@ export default function ReviewerLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-50 light-theme">
       {/* Header */}
       <header className="mx-auto max-w-4xl px-6 py-6 flex items-center justify-between">
         <div className="flex items-center">
