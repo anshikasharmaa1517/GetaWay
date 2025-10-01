@@ -38,5 +38,64 @@ body {
 }
 
 .light-theme * {
-  color: inherit;
+  color: #171717 !important;
+}
+
+.light-theme input,
+.light-theme select,
+.light-theme textarea {
+  color: #171717 !important;
+}
+
+.light-theme input::placeholder,
+.light-theme textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+.light-theme label {
+  color: #171717 !important;
+}
+
+.light-theme p,
+.light-theme span,
+.light-theme div {
+  color: #171717 !important;
+}
+
+/* Override Tailwind text color classes in light theme */
+.light-theme .text-zinc-600,
+.light-theme .text-zinc-700,
+.light-theme .text-zinc-500,
+.light-theme .text-zinc-400,
+.light-theme .text-gray-600,
+.light-theme .text-gray-700,
+.light-theme .text-gray-500,
+.light-theme .text-gray-400,
+.light-theme .text-slate-600,
+.light-theme .text-slate-700,
+.light-theme .text-slate-500,
+.light-theme .text-slate-400,
+.light-theme .text-neutral-600,
+.light-theme .text-neutral-700,
+.light-theme .text-neutral-500,
+.light-theme .text-neutral-400,
+.light-theme .text-stone-600,
+.light-theme .text-stone-700,
+.light-theme .text-stone-500,
+.light-theme .text-stone-400 {
+  color: #171717 !important;
+}
+
+.light-theme .text-zinc-900,
+.light-theme .text-gray-900,
+.light-theme .text-slate-900,
+.light-theme .text-neutral-900,
+.light-theme .text-stone-900 {
+  color: #171717 !important;
+}
+
+/* Override hover states */
+.light-theme .hover\:text-zinc-900:hover,
+.light-theme .hover\:text-gray-900:hover {
+  color: #171717 !important;
 }
