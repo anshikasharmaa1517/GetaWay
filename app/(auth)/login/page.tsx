@@ -157,7 +157,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={sendMagicLink}
-                      className="rounded-lg border px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-50 active:bg-zinc-100"
+                      className="rounded-lg border border-zinc-300 text-zinc-700 px-5 py-3 cursor-pointer transition-colors hover:bg-zinc-50 active:bg-zinc-100"
                     >
                       Send magic link
                     </button>
@@ -228,7 +228,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setMode("enterEmail")}
-                      className="rounded-lg border px-5 py-3 cursor-pointer"
+                      className="rounded-lg border border-zinc-300 text-zinc-700 px-5 py-3 cursor-pointer hover:bg-zinc-50"
                     >
                       Back
                     </button>

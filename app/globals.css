@@ -99,3 +99,24 @@ body {
 .light-theme .hover\:text-gray-900:hover {
   color: #171717 !important;
 }
+
+/* Override button text colors in light theme */
+.light-theme button {
+  color: inherit !important;
+}
+
+.light-theme button.text-white {
+  color: #ffffff !important;
+}
+
+.light-theme button.bg-black {
+  color: #ffffff !important;
+}
+
+.light-theme button.bg-zinc-900 {
+  color: #ffffff !important;
+}
+
+.light-theme button.bg-zinc-800 {
+  color: #ffffff !important;
+}
