@@ -201,7 +201,7 @@ export default function BecomeReviewerPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center light-theme">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
           <p className="text-zinc-600">Loading...</p>
@@ -211,7 +211,7 @@ export default function BecomeReviewerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-50 light-theme">
       <header className="mx-auto max-w-4xl px-6 py-6 flex items-center justify-between">
         <div className="text-base md:text-lg font-semibold tracking-tight">
           PaperWeight

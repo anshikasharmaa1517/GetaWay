@@ -99,7 +99,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 relative">
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 relative light-theme">
       {/* Top bar */}
       <div className="absolute inset-x-0 top-0 flex items-center justify-end p-4 md:p-6">
         <a
