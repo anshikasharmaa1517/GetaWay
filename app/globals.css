@@ -100,7 +100,7 @@ body {
   color: #171717 !important;
 }
 
-/* Override button text colors in light theme */
+/* Override button text colors in light theme - FORCE WHITE TEXT ON DARK BUTTONS */
 .light-theme button.text-white {
   color: #ffffff !important;
 }
@@ -124,13 +124,27 @@ body {
   color: #ffffff !important;
 }
 
-/* Force white text on any button that should have it */
-.light-theme button:not([class*="text-"]):not([class*="border"]) {
+/* Force white text on any button with dark background - HIGHEST PRIORITY */
+.light-theme button.bg-black,
+.light-theme button.bg-zinc-900,
+.light-theme button.bg-zinc-800,
+.light-theme button[class*="bg-black"],
+.light-theme button[class*="bg-zinc-900"],
+.light-theme button[class*="bg-zinc-800"] {
+  color: #ffffff !important;
+}
+
+/* Default button text color for light buttons only */
+.light-theme button:not(.bg-black):not(.bg-zinc-900):not(.bg-zinc-800):not([class*="bg-black"]):not([class*="bg-zinc-900"]):not([class*="bg-zinc-800"]) {
   color: #171717 !important;
 }
 
-.light-theme button.bg-black,
-.light-theme button.bg-zinc-900,
-.light-theme button.bg-zinc-800 {
+/* ULTIMATE OVERRIDE - Force white text on any dark button */
+.light-theme button[class*="bg-black"] *,
+.light-theme button.bg-black *,
+.light-theme button[class*="bg-zinc-900"] *,
+.light-theme button.bg-zinc-900 *,
+.light-theme button[class*="bg-zinc-800"] *,
+.light-theme button.bg-zinc-800 * {
   color: #ffffff !important;
 }
