@@ -101,10 +101,6 @@ body {
 }
 
 /* Override button text colors in light theme */
-.light-theme button {
-  color: inherit !important;
-}
-
 .light-theme button.text-white {
   color: #ffffff !important;
 }
@@ -117,6 +113,24 @@ body {
   color: #ffffff !important;
 }
 
+.light-theme button.bg-zinc-800 {
+  color: #ffffff !important;
+}
+
+/* Ensure all buttons with dark backgrounds have white text */
+.light-theme button[class*="bg-black"],
+.light-theme button[class*="bg-zinc-900"],
+.light-theme button[class*="bg-zinc-800"] {
+  color: #ffffff !important;
+}
+
+/* Force white text on any button that should have it */
+.light-theme button:not([class*="text-"]):not([class*="border"]) {
+  color: #171717 !important;
+}
+
+.light-theme button.bg-black,
+.light-theme button.bg-zinc-900,
 .light-theme button.bg-zinc-800 {
   color: #ffffff !important;
 }
