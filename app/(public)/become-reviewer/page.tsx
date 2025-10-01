@@ -363,7 +363,7 @@ export default function BecomeReviewerPage() {
               <button
                 type="submit"
                 disabled={!canNext || saving}
-                className="inline-flex items-center justify-center rounded-2xl bg-black text-white px-6 py-2.5 text-sm font-medium shadow-sm hover:bg-zinc-900 active:bg-zinc-800 disabled:opacity-50"
+                className="inline-flex items-center justify-center rounded-2xl bg-blue-600 text-white px-6 py-2.5 text-sm font-medium shadow-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Next"}
               </button>
