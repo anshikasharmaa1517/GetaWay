@@ -148,3 +148,22 @@ body {
 .light-theme button.bg-zinc-800 * {
   color: #ffffff !important;
 }
+
+/* Force white text on anchor tags with dark backgrounds */
+.light-theme a.bg-black,
+.light-theme a[class*="bg-black"],
+.light-theme a.bg-zinc-900,
+.light-theme a[class*="bg-zinc-900"],
+.light-theme a.bg-zinc-800,
+.light-theme a[class*="bg-zinc-800"] {
+  color: #ffffff !important;
+}
+
+.light-theme a.bg-black *,
+.light-theme a[class*="bg-black"] *,
+.light-theme a.bg-zinc-900 *,
+.light-theme a[class*="bg-zinc-900"] *,
+.light-theme a.bg-zinc-800 *,
+.light-theme a[class*="bg-zinc-800"] * {
+  color: #ffffff !important;
+}
